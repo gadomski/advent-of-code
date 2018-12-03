@@ -25,8 +25,23 @@ fn checksum(input: &str) -> u64 {
     has_two_of_any_letter * has_three_of_any_letter
 }
 
-fn common_letters_between_correct_ids(_input: &str) -> String {
-    unimplemented!()
+fn common_letters_between_correct_ids(input: &str) -> String {
+    let count = input.lines().count();
+    for (i, first) in input.lines().take(count - 1).enumerate() {
+        for second in input.lines().skip(i + 1) {
+            assert_eq!(first.len(), second.len());
+            let mut common_letters = String::new();
+            for (a, b) in first.chars().zip(second.chars()) {
+                if a == b {
+                    common_letters.push(a)
+                }
+            }
+            if common_letters.len() == first.len() - 1 {
+                return common_letters;
+            }
+        }
+    }
+    panic!("Unable to find the correct ids");
 }
 
 #[test]
