@@ -3,9 +3,10 @@ extern crate chrono;
 extern crate failure;
 extern crate regex;
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Timelike, Utc};
 use failure::Error;
 use regex::Regex;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 fn main() -> Result<(), Error> {
@@ -27,7 +28,9 @@ fn id_times_minute(input: &str) -> Result<u64, Error> {
     for event in events {
         state_machine.handle(event)?;
     }
-    unimplemented!()
+    let id = state_machine.sleepiest_guard().ok_or(NoSleeps)?;
+    let minute = state_machine.sleepiest_minute(id).ok_or(NoSleeps)?;
+    Ok(id * u64::from(minute))
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -46,7 +49,14 @@ enum EventKind {
 #[derive(Debug)]
 struct StateMachine {
     guard_id: u64,
-    awake: bool,
+    state: State,
+    sleeps: HashMap<u64, HashMap<u32, u64>>,
+}
+
+#[derive(Debug)]
+enum State {
+    Awake,
+    Asleep(DateTime<Utc>),
 }
 
 impl StateMachine {
@@ -54,7 +64,8 @@ impl StateMachine {
         match event.kind {
             EventKind::BeginShift(id) => Ok(StateMachine {
                 guard_id: id,
-                awake: true,
+                state: State::Awake,
+                sleeps: HashMap::new(),
             }),
             _ => Err(StateError::Initialize(event)),
         }
@@ -62,30 +73,48 @@ impl StateMachine {
 
     fn handle(&mut self, event: Event) -> Result<(), StateError> {
         match event.kind {
-            EventKind::BeginShift(id) => {
-                if self.awake {
-                    self.guard_id = id;
-                } else {
-                    return Err(StateError::EndShiftWhileAsleep(self.guard_id, event));
+            EventKind::BeginShift(id) => match self.state {
+                State::Awake => self.guard_id = id,
+                State::Asleep(_) => {
+                    return Err(StateError::EndShiftWhileAsleep(self.guard_id, event))
                 }
-            }
-            EventKind::FallAsleep => {
-                if self.awake {
-                    self.awake = false;
-                } else {
-                    return Err(StateError::DoubleSleep(event));
+            },
+            EventKind::FallAsleep => match self.state {
+                State::Awake => self.state = State::Asleep(event.datetime),
+                State::Asleep(_) => return Err(StateError::DoubleSleep(event)),
+            },
+            EventKind::WakeUp => match self.state {
+                State::Awake => return Err(StateError::DoubleAwake(event)),
+                State::Asleep(start) => {
+                    if (event.datetime - start).num_minutes() >= 60 {
+                        return Err(StateError::SleepTooLong(start, event.datetime));
+                    }
+                    let sleeps = self
+                        .sleeps
+                        .entry(self.guard_id)
+                        .or_insert_with(HashMap::new);
+                    for minute in start.minute()..event.datetime.minute() {
+                        let entry = sleeps.entry(minute).or_insert(0);
+                        *entry += 1;
+                    }
+                    self.state = State::Awake;
                 }
-            }
-            EventKind::WakeUp => {
-                if self.awake {
-                    return Err(StateError::DoubleAwake(event));
-                } else {
-                    self.awake = true;
-                    // TODO track sleeps
-                }
-            }
+            },
         }
         Ok(())
+    }
+
+    fn sleepiest_guard(&self) -> Option<u64> {
+        self.sleeps
+            .iter()
+            .max_by_key(|(_, sleeps)| sleeps.values().sum::<u64>())
+            .map(|(&k, _)| k)
+    }
+
+    fn sleepiest_minute(&self, guard_id: u64) -> Option<u32> {
+        self.sleeps
+            .get(&guard_id)
+            .and_then(|ref minutes| minutes.iter().max_by_key(|(_, &n)| n).map(|(&k, _)| k))
     }
 }
 
@@ -100,6 +129,10 @@ struct ParseEventKind(String);
 #[derive(Debug, Fail)]
 #[fail(display = "no events provided in input")]
 struct NoEvents;
+
+#[derive(Debug, Fail)]
+#[fail(display = "no sleeps provided in input")]
+struct NoSleeps;
 
 #[derive(Debug, Fail)]
 enum StateError {
@@ -121,6 +154,9 @@ enum StateError {
 
     #[fail(display = "can't wake up when already awake: {:?}", _0)]
     DoubleAwake(Event),
+
+    #[fail(display = "too long asleep: {} to {}", _0, _1)]
+    SleepTooLong(DateTime<Utc>, DateTime<Utc>),
 }
 
 impl FromStr for Event {
