@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Pete Gadomski <pete.gadomski@gmail.com>"]
 
 [dependencies]
+chrono = "*"
 failure = "*"
 regex = "*"
 
@@ -18,3 +19,7 @@ path = "src/02.rs"
 [[bin]]
 name = "day-03"
 path = "src/03.rs"
+
+[[bin]]
+name = "day-04"
+path = "src/04.rs"
