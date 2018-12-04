@@ -11,26 +11,21 @@ use std::str::FromStr;
 
 fn main() -> Result<(), Error> {
     let input = include_str!("../input/04.txt");
-    println!("Part 1: {}", id_times_minute(input)?);
+    println!("Part 1: {}", strategy_1(input)?);
+    println!("Part 2: {}", strategy_2(input)?);
     Ok(())
 }
 
-fn id_times_minute(input: &str) -> Result<u64, Error> {
-    let mut events = input
-        .lines()
-        .map(|line| line.parse())
-        .collect::<Result<Vec<Event>, Error>>()?;
-    if events.is_empty() {
-        return Err(NoEvents.into());
-    }
-    events.sort();
-    let mut state_machine = StateMachine::new(events.remove(0))?;
-    for event in events {
-        state_machine.handle(event)?;
-    }
+fn strategy_1(input: &str) -> Result<u64, Error> {
+    let state_machine = StateMachine::from_input(input)?;
     let id = state_machine.sleepiest_guard().ok_or(NoSleeps)?;
     let minute = state_machine.sleepiest_minute(id).ok_or(NoSleeps)?;
     Ok(id * u64::from(minute))
+}
+
+fn strategy_2(input: &str) -> Result<u64, Error> {
+    let state_machine = StateMachine::from_input(input)?;
+    state_machine.strategy_2()
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -60,6 +55,22 @@ enum State {
 }
 
 impl StateMachine {
+    fn from_input(input: &str) -> Result<StateMachine, Error> {
+        let mut events = input
+            .lines()
+            .map(|line| line.parse())
+            .collect::<Result<Vec<Event>, Error>>()?;
+        if events.is_empty() {
+            return Err(NoEvents.into());
+        }
+        events.sort();
+        let mut state_machine = StateMachine::new(events.remove(0))?;
+        for event in events {
+            state_machine.handle(event)?;
+        }
+        Ok(state_machine)
+    }
+
     fn new(event: Event) -> Result<StateMachine, StateError> {
         match event.kind {
             EventKind::BeginShift(id) => Ok(StateMachine {
@@ -115,6 +126,24 @@ impl StateMachine {
         self.sleeps
             .get(&guard_id)
             .and_then(|ref minutes| minutes.iter().max_by_key(|(_, &n)| n).map(|(&k, _)| k))
+    }
+
+    fn strategy_2(&self) -> Result<u64, Error> {
+        let guard_id = self
+            .sleeps
+            .iter()
+            .max_by_key(|(_, v)| v.values().max())
+            .map(|(k, _)| k)
+            .ok_or(NoSleeps)?;
+        let minute = self
+            .sleeps
+            .get(guard_id)
+            .ok_or(NoSleeps)?
+            .iter()
+            .max_by_key(|(_, &v)| v)
+            .map(|(&k, _)| u64::from(k))
+            .ok_or(NoSleeps)?;
+        Ok(minute * guard_id)
     }
 }
 
@@ -205,5 +234,27 @@ fn part_1() {
 [1518-11-05 00:03] Guard #99 begins shift
 [1518-11-05 00:45] falls asleep
 [1518-11-05 00:55] wakes up";
-    assert_eq!(240, id_times_minute(input).unwrap());
+    assert_eq!(240, strategy_1(input).unwrap());
+}
+
+#[test]
+fn part_2() {
+    let input = "[1518-11-01 00:00] Guard #10 begins shift
+[1518-11-01 00:05] falls asleep
+[1518-11-01 00:25] wakes up
+[1518-11-01 00:30] falls asleep
+[1518-11-01 00:55] wakes up
+[1518-11-01 23:58] Guard #99 begins shift
+[1518-11-02 00:40] falls asleep
+[1518-11-02 00:50] wakes up
+[1518-11-03 00:05] Guard #10 begins shift
+[1518-11-03 00:24] falls asleep
+[1518-11-03 00:29] wakes up
+[1518-11-04 00:02] Guard #99 begins shift
+[1518-11-04 00:36] falls asleep
+[1518-11-04 00:46] wakes up
+[1518-11-05 00:03] Guard #99 begins shift
+[1518-11-05 00:45] falls asleep
+[1518-11-05 00:55] wakes up";
+    assert_eq!(4455, strategy_2(input).unwrap());
 }
