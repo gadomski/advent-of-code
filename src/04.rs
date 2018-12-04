@@ -19,7 +19,14 @@ fn id_times_minute(input: &str) -> Result<u64, Error> {
         .lines()
         .map(|line| line.parse())
         .collect::<Result<Vec<Event>, Error>>()?;
+    if events.is_empty() {
+        return Err(NoEvents.into());
+    }
     events.sort();
+    let mut state_machine = StateMachine::new(events.remove(0))?;
+    for event in events {
+        state_machine.handle(event)?;
+    }
     unimplemented!()
 }
 
@@ -36,6 +43,52 @@ enum EventKind {
     WakeUp,
 }
 
+#[derive(Debug)]
+struct StateMachine {
+    guard_id: u64,
+    awake: bool,
+}
+
+impl StateMachine {
+    fn new(event: Event) -> Result<StateMachine, StateError> {
+        match event.kind {
+            EventKind::BeginShift(id) => Ok(StateMachine {
+                guard_id: id,
+                awake: true,
+            }),
+            _ => Err(StateError::Initialize(event)),
+        }
+    }
+
+    fn handle(&mut self, event: Event) -> Result<(), StateError> {
+        match event.kind {
+            EventKind::BeginShift(id) => {
+                if self.awake {
+                    self.guard_id = id;
+                } else {
+                    return Err(StateError::EndShiftWhileAsleep(self.guard_id, event));
+                }
+            }
+            EventKind::FallAsleep => {
+                if self.awake {
+                    self.awake = false;
+                } else {
+                    return Err(StateError::DoubleSleep(event));
+                }
+            }
+            EventKind::WakeUp => {
+                if self.awake {
+                    return Err(StateError::DoubleAwake(event));
+                } else {
+                    self.awake = true;
+                    // TODO track sleeps
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Fail)]
 #[fail(display = "invalid event format: {}", _0)]
 struct ParseEvent(String);
@@ -43,6 +96,32 @@ struct ParseEvent(String);
 #[derive(Debug, Fail)]
 #[fail(display = "invalid event kind format: {}", _0)]
 struct ParseEventKind(String);
+
+#[derive(Debug, Fail)]
+#[fail(display = "no events provided in input")]
+struct NoEvents;
+
+#[derive(Debug, Fail)]
+enum StateError {
+    #[fail(
+        display = "must initialize a state with a `BeginShift`, not: {:?}",
+        _0
+    )]
+    Initialize(Event),
+
+    #[fail(
+        display = "shift ended for guard {} while still asleep: {:?}",
+        _0,
+        _1
+    )]
+    EndShiftWhileAsleep(u64, Event),
+
+    #[fail(display = "can't fall asleep when already asleep: {:?}", _0)]
+    DoubleSleep(Event),
+
+    #[fail(display = "can't wake up when already awake: {:?}", _0)]
+    DoubleAwake(Event),
+}
 
 impl FromStr for Event {
     type Err = Error;
