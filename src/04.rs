@@ -20,16 +20,27 @@ fn id_times_minute(input: &str) -> Result<u64, Error> {
         .map(|line| line.parse())
         .collect::<Result<Vec<Event>, _>>()?;
     events.sort();
+    let first_event = events.get(0).ok_or(NoEvents)?;
+    let start_date = first_event.datetime.date();
+    let end_date = events
+        .get(events.len() - 1)
+        .ok_or(NoEvents)?
+        .datetime
+        .date();
+    let mut guard = match first_event.type_ {
+        EventType::BeginShift { id } => id,
+        _ => return Err(InvalidFirstEvent(*first_event).into()),
+    };
     unimplemented!()
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Event {
     datetime: DateTime<Utc>,
-    r#type: EventType,
+    type_: EventType,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum EventType {
     BeginShift { id: u64 },
     FallAsleep,
@@ -44,6 +55,14 @@ struct InvalidEvent(String);
 #[fail(display = "invalid event type: {}", _0)]
 struct InvalidEventType(String);
 
+#[derive(Debug, Fail)]
+#[fail(display = "no events provided")]
+struct NoEvents;
+
+#[derive(Debug, Fail)]
+#[fail(display = "invalid first event: {:?}", _0)]
+struct InvalidFirstEvent(Event);
+
 impl FromStr for Event {
     type Err = Error;
     fn from_str(s: &str) -> Result<Event, Error> {
@@ -51,7 +70,7 @@ impl FromStr for Event {
         let captures = regex.captures(s).ok_or(InvalidEvent(s.to_string()))?;
         Ok(Event {
             datetime: Utc.datetime_from_str(&captures[1], "%Y-%m-%d %H:%M")?,
-            r#type: captures[2].parse()?,
+            type_: captures[2].parse()?,
         })
     }
 }
