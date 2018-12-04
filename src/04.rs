@@ -1,95 +1,15 @@
-extern crate chrono;
-#[macro_use]
 extern crate failure;
-extern crate regex;
 
-use chrono::{DateTime, TimeZone, Utc};
 use failure::Error;
-use regex::Regex;
-use std::str::FromStr;
 
 fn main() -> Result<(), Error> {
     let input = include_str!("../input/04.txt");
-    println!("Part 1: {}", id_times_minute(input)?);
+    println!("Part 1: {}", id_times_minute(input));
     Ok(())
 }
 
-fn id_times_minute(input: &str) -> Result<u64, Error> {
-    let mut events = input
-        .lines()
-        .map(|line| line.parse())
-        .collect::<Result<Vec<Event>, _>>()?;
-    events.sort();
-    let first_event = events.get(0).ok_or(NoEvents)?;
-    let start_date = first_event.datetime.date();
-    let end_date = events
-        .get(events.len() - 1)
-        .ok_or(NoEvents)?
-        .datetime
-        .date();
-    let mut guard = match first_event.type_ {
-        EventType::BeginShift { id } => id,
-        _ => return Err(InvalidFirstEvent(*first_event).into()),
-    };
+fn id_times_minute(_input: &str) -> u64 {
     unimplemented!()
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Event {
-    datetime: DateTime<Utc>,
-    type_: EventType,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum EventType {
-    BeginShift { id: u64 },
-    FallAsleep,
-    WakeUp,
-}
-
-#[derive(Debug, Fail)]
-#[fail(display = "invalid event: {}", _0)]
-struct InvalidEvent(String);
-
-#[derive(Debug, Fail)]
-#[fail(display = "invalid event type: {}", _0)]
-struct InvalidEventType(String);
-
-#[derive(Debug, Fail)]
-#[fail(display = "no events provided")]
-struct NoEvents;
-
-#[derive(Debug, Fail)]
-#[fail(display = "invalid first event: {:?}", _0)]
-struct InvalidFirstEvent(Event);
-
-impl FromStr for Event {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Event, Error> {
-        let regex = Regex::new(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] (.*)$")?;
-        let captures = regex.captures(s).ok_or(InvalidEvent(s.to_string()))?;
-        Ok(Event {
-            datetime: Utc.datetime_from_str(&captures[1], "%Y-%m-%d %H:%M")?,
-            type_: captures[2].parse()?,
-        })
-    }
-}
-
-impl FromStr for EventType {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<EventType, Error> {
-        if s == "falls asleep" {
-            Ok(EventType::FallAsleep)
-        } else if s == "wakes up" {
-            Ok(EventType::WakeUp)
-        } else {
-            let regex = Regex::new(r"^Guard #(\d+) begins shift$")?;
-            let captures = regex.captures(s).ok_or(InvalidEventType(s.to_string()))?;
-            Ok(EventType::BeginShift {
-                id: captures[1].parse()?,
-            })
-        }
-    }
 }
 
 #[test]
@@ -111,5 +31,5 @@ fn part_1() {
 [1518-11-05 00:03] Guard #99 begins shift
 [1518-11-05 00:45] falls asleep
 [1518-11-05 00:55] wakes up";
-    assert_eq!(240, id_times_minute(input).unwrap());
+    assert_eq!(240, id_times_minute(input));
 }
