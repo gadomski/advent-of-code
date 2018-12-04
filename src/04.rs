@@ -1,9 +1,11 @@
 extern crate chrono;
 #[macro_use]
 extern crate failure;
+extern crate regex;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use failure::Error;
+use regex::Regex;
 use std::str::FromStr;
 
 fn main() -> Result<(), Error> {
@@ -13,18 +15,21 @@ fn main() -> Result<(), Error> {
 }
 
 fn id_times_minute(input: &str) -> Result<u64, Error> {
-    let events = input
+    let mut events = input
         .lines()
         .map(|line| line.parse())
         .collect::<Result<Vec<Event>, _>>()?;
+    events.sort();
     unimplemented!()
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Event {
     datetime: DateTime<Utc>,
     r#type: EventType,
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum EventType {
     BeginShift { id: u64 },
     FallAsleep,
@@ -35,10 +40,36 @@ enum EventType {
 #[fail(display = "invalid event: {}", _0)]
 struct InvalidEvent(String);
 
+#[derive(Debug, Fail)]
+#[fail(display = "invalid event type: {}", _0)]
+struct InvalidEventType(String);
+
 impl FromStr for Event {
-    type Err = InvalidEvent;
-    fn from_str(s: &str) -> Result<Event, InvalidEvent> {
-        unimplemented!()
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Event, Error> {
+        let regex = Regex::new(r"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] (.*)$")?;
+        let captures = regex.captures(s).ok_or(InvalidEvent(s.to_string()))?;
+        Ok(Event {
+            datetime: Utc.datetime_from_str(&captures[1], "%Y-%m-%d %H:%M")?,
+            r#type: captures[2].parse()?,
+        })
+    }
+}
+
+impl FromStr for EventType {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<EventType, Error> {
+        if s == "falls asleep" {
+            Ok(EventType::FallAsleep)
+        } else if s == "wakes up" {
+            Ok(EventType::WakeUp)
+        } else {
+            let regex = Regex::new(r"^Guard #(\d+) begins shift$")?;
+            let captures = regex.captures(s).ok_or(InvalidEventType(s.to_string()))?;
+            Ok(EventType::BeginShift {
+                id: captures[1].parse()?,
+            })
+        }
     }
 }
 
