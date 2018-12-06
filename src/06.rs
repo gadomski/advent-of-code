@@ -12,6 +12,7 @@ use std::str::FromStr;
 fn main() -> Result<(), Error> {
     let input = include_str!("../input/06.txt");
     println!("Part 1: {}", size_of_largest_area(input)?);
+    println!("Part 2: {}", size_of_safe_region(input, 10000)?);
     Ok(())
 }
 
@@ -70,6 +71,51 @@ fn size_of_largest_area(input: &str) -> Result<usize, Error> {
                 }).count()
         }).max()
         .ok_or(NoFiniteAreas.into())
+}
+
+fn size_of_safe_region(input: &str, max_sum_of_distances: i64) -> Result<u64, Error> {
+    let coordinates = input
+        .lines()
+        .map(|line| line.parse())
+        .collect::<Result<Vec<Point>, Error>>()?;
+    let min = Point {
+        x: coordinates
+            .iter()
+            .map(|point| point.x)
+            .min()
+            .ok_or(NoPoints)?,
+        y: coordinates
+            .iter()
+            .map(|point| point.y)
+            .min()
+            .ok_or(NoPoints)?,
+    };
+    let max = Point {
+        x: coordinates
+            .iter()
+            .map(|point| point.x)
+            .max()
+            .ok_or(NoPoints)?,
+        y: coordinates
+            .iter()
+            .map(|point| point.y)
+            .max()
+            .ok_or(NoPoints)?,
+    };
+    let mut size = 0;
+    for y in min.y..=max.y {
+        for x in min.x..=max.x {
+            let point = Point { x: x, y: y };
+            let sum: i64 = coordinates
+                .iter()
+                .map(|coordinate| coordinate.distance_to(point))
+                .sum();
+            if sum < max_sum_of_distances {
+                size += 1;
+            }
+        }
+    }
+    Ok(size)
 }
 
 fn closest_coordinate(coordinates: &[Point], point: Point) -> Option<Point> {
@@ -132,4 +178,15 @@ fn part_1() {
 5, 5
 8, 9";
     assert_eq!(17, size_of_largest_area(input).unwrap());
+}
+
+#[test]
+fn part_2() {
+    let input = "1, 1
+1, 6
+8, 3
+3, 4
+5, 5
+8, 9";
+    assert_eq!(16, size_of_safe_region(input, 32).unwrap());
 }
