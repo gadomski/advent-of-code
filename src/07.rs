@@ -29,12 +29,16 @@ struct Team {
     available: Vec<char>,
     second: i64,
     seconds: i64,
-    workers: Vec<Worker>,
+    workers: Vec<Option<Worker>>,
     done: String,
 }
 
-#[derive(Clone, Copy, Debug)]
-struct Worker {}
+#[derive(Clone, Debug)]
+struct Worker {
+    step: char,
+    elapsed: i64,
+    required: i64,
+}
 
 #[derive(Debug, Fail)]
 #[fail(display = "invalid line: {}", _0)]
@@ -84,8 +88,8 @@ impl Team {
                 requirements: requirements,
                 available: available,
                 seconds: seconds,
-                second: 0,
-                workers: vec![Worker::new(); workers],
+                second: -1,
+                workers: vec![None; workers],
                 done: String::new(),
             })
         }
@@ -96,21 +100,40 @@ impl Team {
     }
 
     fn order(&self) -> &str {
-        unimplemented!()
+        self.done.as_str()
     }
 
     fn is_done(&self) -> bool {
-        unimplemented!()
+        // FIXME this isn't true with the finite-time model
+        self.available.is_empty()
     }
 
     fn tic(&mut self) {
-        unimplemented!()
+        self.available.sort();
+        for worker in self.workers.iter_mut().filter(|worker| worker.is_none()) {
+            if !self.available.is_empty() {
+                *worker = Some(Worker::new(self.available.remove(0), self.seconds));
+            }
+        }
+        for worker in self.workers.iter_mut().filter_map(|worker| worker.as_mut()) {
+            worker.tic();
+        }
+        self.second += 1;
+        println!("{:?}", self);
     }
 }
 
 impl Worker {
-    fn new() -> Worker {
-        Worker {}
+    fn new(step: char, seconds: i64) -> Worker {
+        Worker {
+            step: step,
+            elapsed: 0,
+            required: seconds + step as i64 - i64::from(b'A') + 1,
+        }
+    }
+
+    fn tic(&mut self) {
+        self.elapsed += 1;
     }
 }
 
