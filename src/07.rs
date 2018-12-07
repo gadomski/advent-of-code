@@ -64,9 +64,9 @@ struct Overwork(Worker);
 
 impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
-        let steps = String::new();
-        let requirements = requirements(input)?;
-        let second = 0;
+        let mut steps = String::new();
+        let mut requirements = requirements(input)?;
+        let mut second = 0;
         let mut workers: Vec<Option<Worker>> = vec![None; workers];
         let mut available: Vec<_> = requirements
             .iter()
@@ -93,25 +93,35 @@ impl Sleigh {
             for worker in workers.iter_mut().filter_map(|w| w.as_mut()) {
                 worker.tic()?;
             }
+            if workers.iter().all(|w| w.is_none()) {
+                break;
+            }
+            second += 1;
             for option in workers
                 .iter_mut()
                 .filter(|w| w.as_ref().map(|w| w.is_complete()).unwrap_or(false))
             {
                 {
                     let worker = option.as_ref().unwrap();
+                    requirements.remove(&worker.step);
+                    steps.push(char::from(worker.step));
                     for child in &worker.children {
-                        available.push((
-                            *child,
-                            requirements
-                                .get(child)
-                                .map(|v| v.clone())
-                                .unwrap_or_else(Vec::new),
-                        ));
+                        if requirements
+                            .values()
+                            .all(|children| !children.contains(child))
+                        {
+                            available.push((
+                                *child,
+                                requirements
+                                    .get(child)
+                                    .map(|v| v.clone())
+                                    .unwrap_or_else(Vec::new),
+                            ));
+                        }
                     }
                 }
                 *option = None;
             }
-            break;
         }
         Ok(Sleigh {
             steps: steps,
