@@ -108,6 +108,18 @@ impl Team {
     }
 
     fn tic(&mut self) {
+        for worker in self.workers.iter_mut() {
+            if let Some(c) = worker.as_ref().and_then(|worker| {
+                if worker.is_done() {
+                    Some(worker.step())
+                } else {
+                    None
+                }
+            }) {
+                self.done.push(c);
+                *worker = None;
+            }
+        }
         self.available.sort();
         for worker in self.workers.iter_mut().filter(|worker| worker.is_none()) {
             if !self.available.is_empty() {
@@ -136,6 +148,14 @@ impl Worker {
         if self.elapsed > self.required {
             panic!("worker went too far: {:?}", self);
         }
+    }
+
+    fn is_done(&self) -> bool {
+        self.elapsed == self.required
+    }
+
+    fn step(&self) -> char {
+        self.step
     }
 }
 
