@@ -46,16 +46,16 @@ struct Sleigh {
     time_required: u64,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Step {
     name: char,
     children: Vec<char>,
 }
 
 #[derive(Clone, Debug)]
-enum Worker {
+enum Worker<'a> {
     Active {
-        step: char,
+        step: &'a Step,
         elapsed: u64,
         time_required: u64,
     },
@@ -70,7 +70,7 @@ impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
         let mut steps = String::new();
         let requirements = requirements(input)?;
-        let mut workers = vec![Worker::new(); workers];
+        let mut workers = vec![Worker::inactive(); workers];
         let mut second = 0;
         let mut available: Vec<&Step> = requirements
             .keys()
@@ -81,6 +81,12 @@ impl Sleigh {
                     None
                 }
             }).collect();
+        available.sort();
+        for worker in &mut workers {
+            if !available.is_empty() {
+                *worker = Worker::active(available.remove(0), base_seconds);
+            }
+        }
         while workers.iter().any(|worker| worker.is_active()) {}
         Ok(Sleigh {
             steps: steps,
@@ -89,8 +95,8 @@ impl Sleigh {
     }
 }
 
-impl Worker {
-    fn new() -> Worker {
+impl<'a> Worker<'a> {
+    fn inactive() -> Worker<'a> {
         Worker::Inactive
     }
 
@@ -101,7 +107,7 @@ impl Worker {
         }
     }
 
-    fn assign(&self, step: Step, base_seconds: u64) {
+    fn active(step: &Step, base_seconds: u64) -> Worker<'a> {
         unimplemented!()
     }
 }
