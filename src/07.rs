@@ -87,7 +87,10 @@ impl Sleigh {
                 *worker = Worker::active(available.remove(0), base_seconds);
             }
         }
-        while workers.iter().any(|worker| worker.is_active()) {}
+        println!("{:?}", workers);
+        while workers.iter().any(|worker| worker.is_active()) {
+            break;
+        }
         Ok(Sleigh {
             steps: steps,
             time_required: second,
@@ -107,8 +110,12 @@ impl<'a> Worker<'a> {
         }
     }
 
-    fn active(step: &Step, base_seconds: u64) -> Worker<'a> {
-        unimplemented!()
+    fn active(step: &'a Step, base_seconds: u64) -> Worker<'a> {
+        Worker::Active {
+            step: step,
+            elapsed: 0,
+            time_required: base_seconds + step.name as u64 - u64::from(b'A') + 1,
+        }
     }
 }
 
