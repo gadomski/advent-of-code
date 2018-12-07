@@ -18,7 +18,7 @@ fn correct_order(input: &str) -> Result<String, Error> {
     Ok(sleigh.steps)
 }
 
-fn time_required(input: &str, workers: usize, base_seconds: i64) -> Result<i64, Error> {
+fn time_required(input: &str, workers: usize, base_seconds: u64) -> Result<u64, Error> {
     let sleigh = Sleigh::build(input, workers, base_seconds)?;
     Ok(sleigh.time_required)
 }
@@ -39,11 +39,12 @@ fn requirements(input: &str) -> Result<HashMap<char, Vec<char>>, Error> {
 #[derive(Debug)]
 struct Sleigh {
     steps: String,
-    time_required: i64,
+    time_required: u64,
 }
 
 #[derive(Debug)]
 struct Builder {
+    steps: String,
     requirements: HashMap<char, Vec<char>>,
     workers: Vec<Worker>,
 }
@@ -52,8 +53,8 @@ struct Builder {
 enum Worker {
     Active {
         step: char,
-        elapsed: i64,
-        time_required: i64,
+        elapsed: u64,
+        time_required: u64,
     },
     Inactive,
 }
@@ -63,15 +64,22 @@ enum Worker {
 struct InvalidRequirement(String);
 
 impl Sleigh {
-    fn build(input: &str, workers: usize, base_seconds: i64) -> Result<Sleigh, Error> {
+    fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
         let mut builder = Builder {
+            steps: String::new(),
             requirements: requirements(input)?,
             workers: vec![Worker::new(); workers],
         };
+        let mut second = 0;
+        builder.tic();
         while !builder.is_done() {
             builder.tic();
+            second += 1;
         }
-        Ok(builder.into())
+        Ok(Sleigh {
+            steps: builder.steps,
+            time_required: second,
+        })
     }
 }
 
@@ -81,12 +89,6 @@ impl Builder {
     }
 
     fn tic(&self) {
-        unimplemented!()
-    }
-}
-
-impl From<Builder> for Sleigh {
-    fn from(builder: Builder) -> Sleigh {
         unimplemented!()
     }
 }
