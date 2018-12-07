@@ -23,7 +23,7 @@ fn time_required(input: &str, workers: usize, base_seconds: u64) -> Result<u64, 
     Ok(sleigh.time_required)
 }
 
-fn requirements(input: &str) -> Result<HashMap<char, Step>, Error> {
+fn requirements(input: &str) -> Result<HashMap<char, Vec<char>>, Error> {
     let mut requirements = HashMap::new();
     let regex = Regex::new(r"^Step ([A-Z]) must be finished before step ([A-Z]) can begin.$")?;
     for line in input.lines() {
@@ -34,8 +34,8 @@ fn requirements(input: &str) -> Result<HashMap<char, Step>, Error> {
         let child = captures[2].chars().next().unwrap();
         requirements
             .entry(step)
-            .or_insert_with(|| Step::new(step))
-            .add_child(child);
+            .or_insert_with(Vec::new)
+            .push(child);
     }
     Ok(requirements)
 }
@@ -52,115 +52,19 @@ struct Step {
     children: Vec<char>,
 }
 
-#[derive(Clone, Debug)]
-enum Worker {
-    Active {
-        step: Step,
-        elapsed: u64,
-        time_required: u64,
-    },
-    Inactive,
-}
-
 #[derive(Debug, Fail)]
 #[fail(display = "invalid requirement: {}", _0)]
 struct InvalidRequirement(String);
-
-#[derive(Debug, Fail)]
-#[fail(display = "worker overworked: {:?}", _0)]
-struct Overwork(Worker);
 
 impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
         let steps = String::new();
         let requirements = requirements(input)?;
-        let mut workers = vec![Worker::inactive(); workers];
         let second = 0;
-        let mut available: Vec<&Step> = requirements
-            .keys()
-            .filter_map(|&name| {
-                if requirements.values().all(|step| !step.has_child(name)) {
-                    Some(&requirements[&name])
-                } else {
-                    None
-                }
-            }).collect();
-        available.sort();
-        for worker in &mut workers {
-            if !available.is_empty() {
-                *worker = Worker::active(available.remove(0).clone(), base_seconds);
-            }
-        }
-        while workers.iter().any(|worker| worker.is_active()) {
-            for worker in &mut workers {
-                worker.tic()?;
-            }
-        }
         Ok(Sleigh {
             steps: steps,
             time_required: second,
         })
-    }
-}
-
-impl Worker {
-    fn inactive() -> Worker {
-        Worker::Inactive
-    }
-
-    fn is_active(&self) -> bool {
-        match *self {
-            Worker::Inactive => false,
-            Worker::Active { .. } => true,
-        }
-    }
-
-    fn active(step: Step, base_seconds: u64) -> Worker {
-        Worker::Active {
-            elapsed: 0,
-            time_required: base_seconds + step.name as u64 - u64::from(b'A') + 1,
-            step: step,
-        }
-    }
-
-    fn tic(&mut self) -> Result<(), Overwork> {
-        match *self {
-            Worker::Active {
-                ref mut elapsed, ..
-            } => {
-                *elapsed += 1;
-            }
-            Worker::Inactive => {}
-        }
-        match *self {
-            Worker::Active {
-                elapsed,
-                time_required,
-                ..
-            } => if elapsed > time_required {
-                Err(Overwork(self.clone()))
-            } else {
-                Ok(())
-            },
-            Worker::Inactive => return Ok(()),
-        }
-    }
-}
-
-impl Step {
-    fn new(name: char) -> Step {
-        Step {
-            name: name,
-            children: Vec::new(),
-        }
-    }
-
-    fn add_child(&mut self, child: char) {
-        self.children.push(child);
-    }
-
-    fn has_child(&self, child: char) -> bool {
-        self.children.iter().any(|&c| c == child)
     }
 }
 
