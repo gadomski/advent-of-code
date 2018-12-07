@@ -14,142 +14,67 @@ fn main() -> Result<(), Error> {
 }
 
 fn correct_order(input: &str) -> Result<String, Error> {
-    let team = Team::from_input(input, 1, 0)?;
-    Ok(team.order().to_string())
+    let sleigh = Sleigh::build(input, 1, 0)?;
+    Ok(sleigh.steps)
 }
 
-fn time_required(input: &str, workers: usize, seconds: i64) -> Result<i64, Error> {
-    let team = Team::from_input(input, workers, seconds)?;
-    Ok(team.time_required())
+fn time_required(input: &str, workers: usize, base_seconds: i64) -> Result<i64, Error> {
+    let sleigh = Sleigh::build(input, workers, base_seconds)?;
+    Ok(sleigh.time_required)
 }
 
 #[derive(Debug)]
-struct Team {
-    requirements: HashMap<char, Vec<char>>,
-    available: Vec<char>,
-    second: i64,
-    seconds: i64,
-    workers: Vec<Option<Worker>>,
-    done: String,
+struct Sleigh {
+    steps: String,
+    time_required: i64,
+}
+
+#[derive(Debug)]
+struct Builder {
+    workers: Vec<Worker>,
 }
 
 #[derive(Clone, Debug)]
-struct Worker {
-    elapsed: i64,
-    required: i64,
+enum Worker {
+    Active {
+        step: char,
+        elapsed: i64,
+        time_required: i64,
+    },
+    Inactive,
 }
 
-#[derive(Debug, Fail)]
-#[fail(display = "invalid line: {}", _0)]
-struct InvalidLine(String);
-
-#[derive(Debug, Fail)]
-#[fail(display = "circular requirements: {:?}", _0)]
-struct Circular(HashMap<char, Vec<char>>);
-
-impl Team {
-    fn from_input(input: &str, workers: usize, seconds: i64) -> Result<Team, Error> {
-        let mut requirements = HashMap::new();
-        let regex = Regex::new(r"^Step ([A-Z]) must be finished before step ([A-Z]) can begin.$")?;
-        for line in input.lines() {
-            let captures = regex.captures(line).ok_or(InvalidLine(line.to_string()))?;
-            let parent = captures[1].chars().next().unwrap();
-            let child = captures[2].chars().next().unwrap();
-            requirements
-                .entry(parent)
-                .or_insert_with(Vec::new)
-                .push(child)
+impl Sleigh {
+    fn build(input: &str, workers: usize, base_seconds: i64) -> Result<Sleigh, Error> {
+        let mut builder = Builder {
+            workers: vec![Worker::new(); workers],
+        };
+        while !builder.is_done() {
+            builder.tic();
         }
-        let mut team = Team::new(requirements, workers, seconds)?;
-        while !team.is_done() {
-            team.tic();
-        }
-        Ok(team)
+        Ok(builder.into())
     }
+}
 
-    fn new(
-        requirements: HashMap<char, Vec<char>>,
-        workers: usize,
-        seconds: i64,
-    ) -> Result<Team, Circular> {
-        let available: Vec<char> = requirements
-            .keys()
-            .filter(|step| {
-                !requirements
-                    .values()
-                    .any(|children| children.contains(step))
-            }).map(|&c| c)
-            .collect();
-        if available.is_empty() {
-            Err(Circular(requirements))
-        } else {
-            Ok(Team {
-                requirements: requirements,
-                available: available,
-                seconds: seconds,
-                second: -1,
-                workers: vec![None; workers],
-                done: String::new(),
-            })
-        }
-    }
-
-    fn time_required(&self) -> i64 {
+impl Builder {
+    fn is_done(&self) -> bool {
         unimplemented!()
     }
 
-    fn order(&self) -> &str {
-        self.done.as_str()
+    fn tic(&self) {
+        unimplemented!()
     }
+}
 
-    fn is_done(&self) -> bool {
-        self.available.is_empty() && self.workers.iter().all(|worker| worker.is_none())
-    }
-
-    fn tic(&mut self) {
-        for worker in self.workers.iter_mut() {
-            if let Some((c, children)) = worker.as_ref().and_then(|worker| {
-                if worker.is_done() {
-                    Some((worker.step(), worker.children()))
-                } else {
-                    None
-                }
-            }) {
-                self.done.push(c);
-                *worker = None;
-            }
-        }
-        self.available.sort();
-        for worker in self.workers.iter_mut().filter(|worker| worker.is_none()) {
-            if !self.available.is_empty() {
-                *worker = Some(Worker::new(self.available.remove(0), self.seconds));
-            }
-        }
-        for worker in self.workers.iter_mut().filter_map(|worker| worker.as_mut()) {
-            worker.tic();
-        }
-        self.second += 1;
-        println!("{:?}", self);
+impl From<Builder> for Sleigh {
+    fn from(builder: Builder) -> Sleigh {
+        unimplemented!()
     }
 }
 
 impl Worker {
-    fn new(step: char, seconds: i64) -> Worker {
-        Worker {
-            elapsed: 0,
-            required: seconds + step as i64 - i64::from(b'A') + 1,
-        }
-    }
-
-    fn tic(&mut self) {
-        self.elapsed += 1;
-        if self.elapsed > self.required {
-            panic!("worker went too far: {:?}", self);
-        }
-    }
-
-    fn is_done(&self) -> bool {
-        self.elapsed == self.required
+    fn new() -> Worker {
+        Worker::Inactive
     }
 }
 
