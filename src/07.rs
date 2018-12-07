@@ -23,6 +23,19 @@ fn time_required(input: &str, workers: usize, base_seconds: i64) -> Result<i64, 
     Ok(sleigh.time_required)
 }
 
+fn requirements(input: &str) -> Result<HashMap<char, Vec<char>>, Error> {
+    let mut requirements = HashMap::new();
+    let regex = Regex::new(r"^Step ([A-Z]) must be finished before step ([A-Z]) can begin.$")?;
+    for line in input.lines() {
+        let captures = regex
+            .captures(line)
+            .ok_or(InvalidRequirement(line.to_string()))?;
+        let step = captures[1].chars().next().unwrap();
+        let child = captures[2].chars().next().unwrap();
+    }
+    Ok(requirements)
+}
+
 #[derive(Debug)]
 struct Sleigh {
     steps: String,
@@ -31,6 +44,7 @@ struct Sleigh {
 
 #[derive(Debug)]
 struct Builder {
+    requirements: HashMap<char, Vec<char>>,
     workers: Vec<Worker>,
 }
 
@@ -44,9 +58,14 @@ enum Worker {
     Inactive,
 }
 
+#[derive(Debug, Fail)]
+#[fail(display = "invalid requirement: {}", _0)]
+struct InvalidRequirement(String);
+
 impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: i64) -> Result<Sleigh, Error> {
         let mut builder = Builder {
+            requirements: requirements(input)?,
             workers: vec![Worker::new(); workers],
         };
         while !builder.is_done() {
