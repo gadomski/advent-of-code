@@ -101,14 +101,21 @@ impl Builder {
         unimplemented!()
     }
 
-    fn tic(&self) {
-        unimplemented!()
+    fn tic(&mut self) {
+        for worker in self.workers.iter_mut().filter(|worker| !worker.is_active()) {}
     }
 }
 
 impl Worker {
     fn new() -> Worker {
         Worker::Inactive
+    }
+
+    fn is_active(&self) -> bool {
+        match *self {
+            Worker::Inactive => false,
+            Worker::Active { .. } => true,
+        }
     }
 }
 
