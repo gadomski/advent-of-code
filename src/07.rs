@@ -24,17 +24,17 @@ fn correct_order(input: &str) -> Result<String, Error> {
             .or_insert_with(Vec::new)
             .push(child.to_string())
     }
-    let first = requirements
+    let mut available: Vec<String> = requirements
         .keys()
         .filter(|step| {
             !requirements
                 .values()
                 .any(|children| children.contains(step))
-        }).next()
-        .ok_or(Circular(requirements.clone()))?
-        .clone();
-
-    let mut available = vec![first];
+        }).map(|s| s.clone())
+        .collect();
+    if available.is_empty() {
+        return Err(Circular(requirements.clone()).into());
+    }
     let mut done = String::new();
     while !available.is_empty() {
         available.sort();
