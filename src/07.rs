@@ -104,8 +104,7 @@ impl Team {
     }
 
     fn is_done(&self) -> bool {
-        // FIXME this isn't true with the finite-time model
-        self.available.is_empty()
+        self.available.is_empty() && self.workers.iter().all(|worker| worker.is_none())
     }
 
     fn tic(&mut self) {
@@ -134,6 +133,9 @@ impl Worker {
 
     fn tic(&mut self) {
         self.elapsed += 1;
+        if self.elapsed > self.required {
+            panic!("worker went too far: {:?}", self);
+        }
     }
 }
 
