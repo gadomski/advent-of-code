@@ -72,6 +72,15 @@ impl Sleigh {
         let requirements = requirements(input)?;
         let mut workers = vec![Worker::new(); workers];
         let mut second = 0;
+        let mut available: Vec<&Step> = requirements
+            .keys()
+            .filter_map(|&name| {
+                if requirements.values().all(|step| !step.has_child(name)) {
+                    Some(&requirements[&name])
+                } else {
+                    None
+                }
+            }).collect();
         while workers.iter().any(|worker| worker.is_active()) {}
         Ok(Sleigh {
             steps: steps,
@@ -107,6 +116,10 @@ impl Step {
 
     fn add_child(&mut self, child: char) {
         self.children.push(child);
+    }
+
+    fn has_child(&self, child: char) -> bool {
+        self.children.iter().any(|&c| c == child)
     }
 }
 
