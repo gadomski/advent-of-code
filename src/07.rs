@@ -30,6 +30,7 @@ struct Team {
     second: i64,
     seconds: i64,
     workers: Vec<Worker>,
+    done: String,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -82,9 +83,10 @@ impl Team {
             Ok(Team {
                 requirements: requirements,
                 available: available,
-                second: -1,
                 seconds: seconds,
+                second: 0,
                 workers: vec![Worker::new(); workers],
+                done: String::new(),
             })
         }
     }
@@ -98,7 +100,7 @@ impl Team {
     }
 
     fn is_done(&self) -> bool {
-        self.available.is_empty() && self.workers.iter().all(|worker| worker.is_done())
+        unimplemented!()
     }
 
     fn tic(&mut self) {
@@ -109,10 +111,6 @@ impl Team {
 impl Worker {
     fn new() -> Worker {
         Worker {}
-    }
-
-    fn is_done(&self) -> bool {
-        unimplemented!()
     }
 }
 
