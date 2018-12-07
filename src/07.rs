@@ -24,7 +24,11 @@ fn time_required(input: &str, workers: usize, seconds: u64) -> Result<u64, Error
 }
 
 #[derive(Debug)]
-struct Team {}
+struct Team {
+    requirements: HashMap<char, Vec<char>>,
+    available: Vec<char>,
+    second: u64,
+}
 
 #[derive(Debug, Fail)]
 #[fail(display = "invalid line: {}", _0)]
@@ -32,7 +36,7 @@ struct InvalidLine(String);
 
 #[derive(Debug, Fail)]
 #[fail(display = "circular requirements: {:?}", _0)]
-struct Circular(HashMap<String, Vec<String>>);
+struct Circular(HashMap<char, Vec<char>>);
 
 impl Team {
     fn from_input(input: &str, workers: usize, seconds: u64) -> Result<Team, Error> {
@@ -40,41 +44,42 @@ impl Team {
         let regex = Regex::new(r"^Step ([A-Z]) must be finished before step ([A-Z]) can begin.$")?;
         for line in input.lines() {
             let captures = regex.captures(line).ok_or(InvalidLine(line.to_string()))?;
-            let parent = &captures[1];
-            let child = &captures[2];
+            let parent = captures[1].chars().next().unwrap();
+            let child = captures[2].chars().next().unwrap();
             requirements
-                .entry(parent.to_string())
+                .entry(parent)
                 .or_insert_with(Vec::new)
-                .push(child.to_string())
+                .push(child)
         }
-        let mut available: Vec<String> = requirements
+        let mut team = Team::new(requirements, workers, seconds)?;
+        while !team.is_done() {
+            team.tic();
+        }
+        Ok(team)
+    }
+
+    fn new(
+        requirements: HashMap<char, Vec<char>>,
+        workers: usize,
+        seconds: u64,
+    ) -> Result<Team, Circular> {
+        let available: Vec<char> = requirements
             .keys()
             .filter(|step| {
                 !requirements
                     .values()
                     .any(|children| children.contains(step))
-            }).map(|s| s.clone())
+            }).map(|&c| c)
             .collect();
         if available.is_empty() {
-            return Err(Circular(requirements.clone()).into());
+            Err(Circular(requirements))
+        } else {
+            Ok(Team {
+                requirements: requirements,
+                available: available,
+                second: 0,
+            })
         }
-        let mut done = String::new();
-        while !available.is_empty() {
-            available.sort();
-            let step = available.remove(0);
-            done.push_str(&step);
-            if let Some(children) = requirements.remove(&step) {
-                for child in children {
-                    if !requirements
-                        .values()
-                        .any(|children| children.contains(&child))
-                    {
-                        available.push(child);
-                    }
-                }
-            }
-        }
-        Ok(Team {})
     }
 
     fn time_required(&self) -> u64 {
@@ -82,6 +87,14 @@ impl Team {
     }
 
     fn order(&self) -> &str {
+        unimplemented!()
+    }
+
+    fn is_done(&self) -> bool {
+        unimplemented!()
+    }
+
+    fn tic(&mut self) {
         unimplemented!()
     }
 }
