@@ -28,7 +28,12 @@ struct Team {
     requirements: HashMap<char, Vec<char>>,
     available: Vec<char>,
     second: i64,
+    seconds: i64,
+    workers: Vec<Worker>,
 }
+
+#[derive(Clone, Copy, Debug)]
+struct Worker {}
 
 #[derive(Debug, Fail)]
 #[fail(display = "invalid line: {}", _0)]
@@ -78,6 +83,8 @@ impl Team {
                 requirements: requirements,
                 available: available,
                 second: -1,
+                seconds: seconds,
+                workers: vec![Worker::new(); workers],
             })
         }
     }
@@ -91,10 +98,20 @@ impl Team {
     }
 
     fn is_done(&self) -> bool {
-        unimplemented!()
+        self.available.is_empty() && self.workers.iter().all(|worker| worker.is_done())
     }
 
     fn tic(&mut self) {
+        unimplemented!()
+    }
+}
+
+impl Worker {
+    fn new() -> Worker {
+        Worker {}
+    }
+
+    fn is_done(&self) -> bool {
         unimplemented!()
     }
 }
