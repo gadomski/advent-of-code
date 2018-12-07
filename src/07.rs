@@ -35,7 +35,6 @@ struct Team {
 
 #[derive(Clone, Debug)]
 struct Worker {
-    step: char,
     elapsed: i64,
     required: i64,
 }
@@ -109,9 +108,9 @@ impl Team {
 
     fn tic(&mut self) {
         for worker in self.workers.iter_mut() {
-            if let Some(c) = worker.as_ref().and_then(|worker| {
+            if let Some((c, children)) = worker.as_ref().and_then(|worker| {
                 if worker.is_done() {
-                    Some(worker.step())
+                    Some((worker.step(), worker.children()))
                 } else {
                     None
                 }
@@ -137,7 +136,6 @@ impl Team {
 impl Worker {
     fn new(step: char, seconds: i64) -> Worker {
         Worker {
-            step: step,
             elapsed: 0,
             required: seconds + step as i64 - i64::from(b'A') + 1,
         }
@@ -152,10 +150,6 @@ impl Worker {
 
     fn is_done(&self) -> bool {
         self.elapsed == self.required
-    }
-
-    fn step(&self) -> char {
-        self.step
     }
 }
 
