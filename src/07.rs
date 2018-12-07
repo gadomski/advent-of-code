@@ -77,8 +77,8 @@ impl Sleigh {
                     None
                 }
             }).collect();
-        available.sort();
         loop {
+            available.sort();
             for worker in workers.iter_mut().filter(|w| w.is_none()) {
                 if !available.is_empty() {
                     let (step, children) = available.remove(0);
@@ -93,6 +93,25 @@ impl Sleigh {
             for worker in workers.iter_mut().filter_map(|w| w.as_mut()) {
                 worker.tic()?;
             }
+            for option in workers
+                .iter_mut()
+                .filter(|w| w.as_ref().map(|w| w.is_complete()).unwrap_or(false))
+            {
+                {
+                    let worker = option.as_ref().unwrap();
+                    for child in &worker.children {
+                        available.push((
+                            *child,
+                            requirements
+                                .get(child)
+                                .map(|v| v.clone())
+                                .unwrap_or_else(Vec::new),
+                        ));
+                    }
+                }
+                *option = None;
+            }
+            break;
         }
         Ok(Sleigh {
             steps: steps,
@@ -109,6 +128,10 @@ impl Worker {
         } else {
             Err(Overwork(self.clone()))
         }
+    }
+
+    fn is_complete(&self) -> bool {
+        self.elapsed >= self.time_required
     }
 }
 
