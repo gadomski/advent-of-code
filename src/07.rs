@@ -46,14 +46,6 @@ struct Sleigh {
     time_required: u64,
 }
 
-#[derive(Debug)]
-struct Builder {
-    base_seconds: u64,
-    steps: String,
-    requirements: HashMap<char, Step>,
-    workers: Vec<Worker>,
-}
-
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Step {
     name: char,
@@ -76,33 +68,15 @@ struct InvalidRequirement(String);
 
 impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
-        let mut builder = Builder {
-            base_seconds: base_seconds,
-            steps: String::new(),
-            requirements: requirements(input)?,
-            workers: vec![Worker::new(); workers],
-        };
+        let mut steps = String::new();
+        let requirements = requirements(input)?;
+        let mut workers = vec![Worker::new(); workers];
         let mut second = 0;
-        builder.tic();
-        while !builder.is_done() {
-            builder.tic();
-            second += 1;
-            println!("{}: {:?}", second, builder);
-        }
+        while workers.iter().any(|worker| worker.is_active()) {}
         Ok(Sleigh {
-            steps: builder.steps,
+            steps: steps,
             time_required: second,
         })
-    }
-}
-
-impl Builder {
-    fn is_done(&self) -> bool {
-        unimplemented!()
-    }
-
-    fn tic(&mut self) {
-        for worker in self.workers.iter_mut().filter(|worker| !worker.is_active()) {}
     }
 }
 
@@ -116,6 +90,10 @@ impl Worker {
             Worker::Inactive => false,
             Worker::Active { .. } => true,
         }
+    }
+
+    fn assign(&self, step: Step, base_seconds: u64) {
+        unimplemented!()
     }
 }
 
