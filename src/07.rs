@@ -46,16 +46,16 @@ struct Sleigh {
     time_required: u64,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Step {
     name: char,
     children: Vec<char>,
 }
 
 #[derive(Clone, Debug)]
-enum Worker<'a> {
+enum Worker {
     Active {
-        step: &'a Step,
+        step: Step,
         elapsed: u64,
         time_required: u64,
     },
@@ -66,12 +66,16 @@ enum Worker<'a> {
 #[fail(display = "invalid requirement: {}", _0)]
 struct InvalidRequirement(String);
 
+#[derive(Debug, Fail)]
+#[fail(display = "worker overworked: {:?}", _0)]
+struct Overwork(Worker);
+
 impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
-        let mut steps = String::new();
+        let steps = String::new();
         let requirements = requirements(input)?;
         let mut workers = vec![Worker::inactive(); workers];
-        let mut second = 0;
+        let second = 0;
         let mut available: Vec<&Step> = requirements
             .keys()
             .filter_map(|&name| {
@@ -84,12 +88,13 @@ impl Sleigh {
         available.sort();
         for worker in &mut workers {
             if !available.is_empty() {
-                *worker = Worker::active(available.remove(0), base_seconds);
+                *worker = Worker::active(available.remove(0).clone(), base_seconds);
             }
         }
-        println!("{:?}", workers);
         while workers.iter().any(|worker| worker.is_active()) {
-            break;
+            for worker in &mut workers {
+                worker.tic()?;
+            }
         }
         Ok(Sleigh {
             steps: steps,
@@ -98,8 +103,8 @@ impl Sleigh {
     }
 }
 
-impl<'a> Worker<'a> {
-    fn inactive() -> Worker<'a> {
+impl Worker {
+    fn inactive() -> Worker {
         Worker::Inactive
     }
 
@@ -110,11 +115,34 @@ impl<'a> Worker<'a> {
         }
     }
 
-    fn active(step: &'a Step, base_seconds: u64) -> Worker<'a> {
+    fn active(step: Step, base_seconds: u64) -> Worker {
         Worker::Active {
-            step: step,
             elapsed: 0,
             time_required: base_seconds + step.name as u64 - u64::from(b'A') + 1,
+            step: step,
+        }
+    }
+
+    fn tic(&mut self) -> Result<(), Overwork> {
+        match *self {
+            Worker::Active {
+                ref mut elapsed, ..
+            } => {
+                *elapsed += 1;
+            }
+            Worker::Inactive => {}
+        }
+        match *self {
+            Worker::Active {
+                elapsed,
+                time_required,
+                ..
+            } => if elapsed > time_required {
+                Err(Overwork(self.clone()))
+            } else {
+                Ok(())
+            },
+            Worker::Inactive => return Ok(()),
         }
     }
 }
