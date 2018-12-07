@@ -18,7 +18,7 @@ fn correct_order(input: &str) -> Result<String, Error> {
     Ok(team.order().to_string())
 }
 
-fn time_required(input: &str, workers: usize, seconds: u64) -> Result<u64, Error> {
+fn time_required(input: &str, workers: usize, seconds: i64) -> Result<i64, Error> {
     let team = Team::from_input(input, workers, seconds)?;
     Ok(team.time_required())
 }
@@ -27,7 +27,7 @@ fn time_required(input: &str, workers: usize, seconds: u64) -> Result<u64, Error
 struct Team {
     requirements: HashMap<char, Vec<char>>,
     available: Vec<char>,
-    second: u64,
+    second: i64,
 }
 
 #[derive(Debug, Fail)]
@@ -39,7 +39,7 @@ struct InvalidLine(String);
 struct Circular(HashMap<char, Vec<char>>);
 
 impl Team {
-    fn from_input(input: &str, workers: usize, seconds: u64) -> Result<Team, Error> {
+    fn from_input(input: &str, workers: usize, seconds: i64) -> Result<Team, Error> {
         let mut requirements = HashMap::new();
         let regex = Regex::new(r"^Step ([A-Z]) must be finished before step ([A-Z]) can begin.$")?;
         for line in input.lines() {
@@ -61,7 +61,7 @@ impl Team {
     fn new(
         requirements: HashMap<char, Vec<char>>,
         workers: usize,
-        seconds: u64,
+        seconds: i64,
     ) -> Result<Team, Circular> {
         let available: Vec<char> = requirements
             .keys()
@@ -77,12 +77,12 @@ impl Team {
             Ok(Team {
                 requirements: requirements,
                 available: available,
-                second: 0,
+                second: -1,
             })
         }
     }
 
-    fn time_required(&self) -> u64 {
+    fn time_required(&self) -> i64 {
         unimplemented!()
     }
 
