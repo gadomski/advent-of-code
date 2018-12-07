@@ -23,7 +23,7 @@ fn time_required(input: &str, workers: usize, base_seconds: u64) -> Result<u64, 
     Ok(sleigh.time_required)
 }
 
-fn requirements(input: &str) -> Result<HashMap<char, Vec<char>>, Error> {
+fn requirements(input: &str) -> Result<HashMap<char, Step>, Error> {
     let mut requirements = HashMap::new();
     let regex = Regex::new(r"^Step ([A-Z]) must be finished before step ([A-Z]) can begin.$")?;
     for line in input.lines() {
@@ -32,6 +32,10 @@ fn requirements(input: &str) -> Result<HashMap<char, Vec<char>>, Error> {
             .ok_or(InvalidRequirement(line.to_string()))?;
         let step = captures[1].chars().next().unwrap();
         let child = captures[2].chars().next().unwrap();
+        requirements
+            .entry(step)
+            .or_insert_with(|| Step::new(step))
+            .add_child(child);
     }
     Ok(requirements)
 }
@@ -44,9 +48,16 @@ struct Sleigh {
 
 #[derive(Debug)]
 struct Builder {
+    base_seconds: u64,
     steps: String,
-    requirements: HashMap<char, Vec<char>>,
+    requirements: HashMap<char, Step>,
     workers: Vec<Worker>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct Step {
+    name: char,
+    children: Vec<char>,
 }
 
 #[derive(Clone, Debug)]
@@ -66,6 +77,7 @@ struct InvalidRequirement(String);
 impl Sleigh {
     fn build(input: &str, workers: usize, base_seconds: u64) -> Result<Sleigh, Error> {
         let mut builder = Builder {
+            base_seconds: base_seconds,
             steps: String::new(),
             requirements: requirements(input)?,
             workers: vec![Worker::new(); workers],
@@ -75,6 +87,7 @@ impl Sleigh {
         while !builder.is_done() {
             builder.tic();
             second += 1;
+            println!("{}: {:?}", second, builder);
         }
         Ok(Sleigh {
             steps: builder.steps,
@@ -96,6 +109,19 @@ impl Builder {
 impl Worker {
     fn new() -> Worker {
         Worker::Inactive
+    }
+}
+
+impl Step {
+    fn new(name: char) -> Step {
+        Step {
+            name: name,
+            children: Vec::new(),
+        }
+    }
+
+    fn add_child(&mut self, child: char) {
+        self.children.push(child);
     }
 }
 
