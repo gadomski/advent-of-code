@@ -68,7 +68,21 @@ impl Node {
     }
 
     fn value(&self) -> u64 {
-        unimplemented!()
+        if self.children.is_empty() {
+            self.metadata.iter().sum()
+        } else {
+            self.metadata
+                .iter()
+                .filter_map(|&n| {
+                    if n > 0 {
+                        self.children.get(n as usize - 1)
+                    } else {
+                        None
+                    }
+                })
+                .map(|child| child.value())
+                .sum()
+        }
     }
 }
 
