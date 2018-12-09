@@ -5,13 +5,19 @@ use std::str::FromStr;
 
 fn main() -> Result<(), failure::Error> {
     let input = include_str!("../input/08.txt").trim();
-    println!("{}", sum_of_metadata(input)?);
+    println!("Part 1: {}", sum_of_metadata(input)?);
+    println!("Part 2: {}", value(input)?);
     Ok(())
 }
 
 fn sum_of_metadata(input: &str) -> Result<u64, failure::Error> {
     let tree: Node = input.parse()?;
     Ok(tree.sum_of_metadata())
+}
+
+fn value(input: &str) -> Result<u64, failure::Error> {
+    let tree: Node = input.parse()?;
+    Ok(tree.value())
 }
 
 #[derive(Debug)]
@@ -60,6 +66,10 @@ impl Node {
             .sum::<u64>()
             + self.metadata.iter().sum::<u64>()
     }
+
+    fn value(&self) -> u64 {
+        unimplemented!()
+    }
 }
 
 impl FromStr for Node {
@@ -77,4 +87,10 @@ impl FromStr for Node {
 fn part_1() {
     let input = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2";
     assert_eq!(138, sum_of_metadata(input).unwrap());
+}
+
+#[test]
+fn part_2() {
+    let input = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2";
+    assert_eq!(66, value(input).unwrap());
 }
