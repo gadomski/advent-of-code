@@ -4,7 +4,7 @@ extern crate failure;
 use std::str::FromStr;
 
 fn main() -> Result<(), failure::Error> {
-    let input = include_str!("../input/08.txt");
+    let input = include_str!("../input/08.txt").trim();
     println!("{}", sum_of_metadata(input)?);
     Ok(())
 }
