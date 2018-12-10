@@ -1,9 +1,13 @@
+use std::collections::VecDeque;
+
 fn main() {
     println!("Part 1: {}", winning_score(418, 71339));
+    println!("Part 2: {}", winning_score(418, 71339 * 100));
 }
 
 fn winning_score(num_players: usize, last_marble: u64) -> u64 {
-    let mut circle = vec![0];
+    let mut circle = VecDeque::new();
+    circle.push_front(0);
     let mut marble = 1;
     let mut current_marble_index = 0;
     let mut player = 0;
@@ -12,12 +16,12 @@ fn winning_score(num_players: usize, last_marble: u64) -> u64 {
         if marble % 23 == 0 {
             scores[player] += marble;
             let index = (current_marble_index + circle.len() - 7) % circle.len();
-            scores[player] += circle.remove(index);
+            scores[player] += circle.remove(index).unwrap();
             current_marble_index = index % circle.len();
         } else {
             let index = (current_marble_index + 2) % circle.len();
             if index == 0 {
-                circle.push(marble);
+                circle.push_back(marble);
                 current_marble_index = circle.len() - 1;
             } else {
                 circle.insert(index, marble);
