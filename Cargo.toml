@@ -8,6 +8,7 @@ chrono = "*"
 failure = "*"
 regex = "*"
 pbr = "*"
+text_io = "*"
 
 [[bin]]
 name = "day-01"
@@ -44,3 +45,7 @@ path = "src/08.rs"
 [[bin]]
 name = "day-09"
 path = "src/09.rs"
+
+[[bin]]
+name = "day-10"
+path = "src/10.rs"
