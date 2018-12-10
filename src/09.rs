@@ -1,3 +1,6 @@
+extern crate pbr;
+
+use pbr::ProgressBar;
 use std::collections::VecDeque;
 
 fn main() {
@@ -6,12 +9,13 @@ fn main() {
 }
 
 fn winning_score(num_players: usize, last_marble: u64) -> u64 {
-    let mut circle = VecDeque::new();
+    let mut circle = VecDeque::with_capacity(last_marble as usize);
     circle.push_front(0);
     let mut marble = 1;
     let mut current_marble_index = 0;
     let mut player = 0;
     let mut scores = vec![0; num_players];
+    let mut progress_bar = ProgressBar::new(last_marble);
     loop {
         if marble % 23 == 0 {
             scores[player] += marble;
@@ -34,7 +38,9 @@ fn winning_score(num_players: usize, last_marble: u64) -> u64 {
             marble += 1;
         }
         player = (player + 1) % num_players;
+        progress_bar.inc();
     }
+    progress_bar.finish();
     scores.into_iter().max().unwrap_or(0)
 }
 
