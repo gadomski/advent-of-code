@@ -8,11 +8,10 @@ fn winning_score(num_players: usize, last_marble: u64) -> u64 {
     let mut current_marble_index = 0;
     let mut player = 0;
     let mut scores = vec![0; num_players];
-    println!("[-] (0)");
     loop {
         if marble % 23 == 0 {
             scores[player] += marble;
-            let index = (current_marble_index - 7) % circle.len();
+            let index = (current_marble_index + circle.len() - 7) % circle.len();
             scores[player] += circle.remove(index);
             current_marble_index = index % circle.len();
         } else {
@@ -25,15 +24,6 @@ fn winning_score(num_players: usize, last_marble: u64) -> u64 {
                 current_marble_index = index;
             }
         }
-        print!("[{}]", player);
-        for (i, n) in circle.iter().enumerate() {
-            if i == current_marble_index {
-                print!("({:2})", n);
-            } else {
-                print!(" {:2} ", n);
-            }
-        }
-        println!("");
         if marble == last_marble {
             break;
         } else {
@@ -41,7 +31,7 @@ fn winning_score(num_players: usize, last_marble: u64) -> u64 {
         }
         player = (player + 1) % num_players;
     }
-    unimplemented!()
+    scores.into_iter().max().unwrap_or(0)
 }
 
 #[test]
