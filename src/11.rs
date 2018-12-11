@@ -15,7 +15,7 @@ struct Grid {
     size: i64,
 }
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 struct Square {
     total_power: i64,
     size: i64,
@@ -53,11 +53,17 @@ impl Grid {
 
     fn best_square_of_any_size(&self) -> Square {
         let mut best_square = Square::worst();
-        for size in 1..=self.size {
-            println!("Checking {}x{}", size, size);
-            let square = self.best_square(size);
-            if square > best_square {
-                best_square = square;
+        for x in 1..=self.size {
+            for y in 1..=self.size {
+                let mut square = self.square(x, y, 1).unwrap();
+                loop {
+                    if square > best_square {
+                        best_square = square;
+                    }
+                    if !self.grow_square(&mut square) {
+                        break;
+                    }
+                }
             }
         }
         best_square
@@ -93,6 +99,35 @@ impl Grid {
             size: size,
             total_power: total_power,
         })
+    }
+
+    fn grow_square(&self, square: &mut Square) -> bool {
+        let mut total_power = 0;
+        for x in square.x..(square.x + square.size) {
+            if let Some(power) = self.power_levels.get(&(x, square.y + square.size)) {
+                total_power += power;
+            } else {
+                return false;
+            }
+        }
+        for y in square.y..(square.y + square.size) {
+            if let Some(power) = self.power_levels.get(&(square.x + square.size, y)) {
+                total_power += power;
+            } else {
+                return false;
+            }
+        }
+        if let Some(power) = self
+            .power_levels
+            .get(&(square.x + square.size, square.y + square.size))
+        {
+            total_power += power;
+        } else {
+            return false;
+        }
+        square.size += 1;
+        square.total_power += total_power;
+        true
     }
 }
 
