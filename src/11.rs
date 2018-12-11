@@ -54,6 +54,7 @@ impl Grid {
     fn best_square_of_any_size(&self) -> Square {
         let mut best_square = Square::worst();
         for size in 1..=self.size {
+            println!("Checking {}x{}", size, size);
             let square = self.best_square(size);
             if square > best_square {
                 best_square = square;
