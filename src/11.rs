@@ -2,7 +2,11 @@ extern crate failure;
 
 use failure::Error;
 
-fn maion() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
+    let input = 5719;
+    let grid = Grid::new(input);
+    let (x, y) = grid.best_square();
+    println!("Part 1: {},{}", x, y);
     Ok(())
 }
 
@@ -25,6 +29,10 @@ impl Grid {
         power_level *= rack_id;
         power_level = (power_level / 100) % 10;
         power_level - 5
+    }
+
+    fn best_square(&self) -> (i64, i64) {
+        unimplemented!()
     }
 }
 
