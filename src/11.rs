@@ -6,60 +6,69 @@ use std::i64;
 
 const GRID_SIZE: i64 = 300;
 
-fn main() -> Result<(), Error> {
+fn main() {
     let input = 5719;
     let grid = Grid::new(input);
-    let (x, y) = grid.best_square();
-    println!("Part 1: {},{}", x, y);
-    Ok(())
+    println!("Part 1: {}", grid.part_1());
+    println!("Part 2: {}", grid.part_2());
 }
 
 #[derive(Debug)]
 struct Grid {
-    serial_number: i64,
+    power_levels: HashMap<(i64, i64), i64>,
+}
+
+#[derive(Debug)]
+struct Square {
+    x: i64,
+    y: i64,
+    size: i64,
+    total_power: i64,
 }
 
 impl Grid {
     fn new(serial_number: i64) -> Grid {
-        Grid {
-            serial_number: serial_number,
-        }
-    }
-
-    fn power_level(&self, x: i64, y: i64) -> i64 {
-        let rack_id = x + 10;
-        let mut power_level = rack_id * y;
-        power_level += self.serial_number;
-        power_level *= rack_id;
-        power_level = (power_level / 100) % 10;
-        power_level - 5
-    }
-
-    fn best_square(&self) -> (i64, i64) {
         let mut power_levels = HashMap::new();
         for y in 1..=GRID_SIZE {
             for x in 1..=GRID_SIZE {
-                power_levels.insert((x, y), self.power_level(x, y));
+                power_levels.insert((x, y), power_level(x, y, serial_number));
             }
         }
-        let mut largest_total_power = i64::MIN;
-        let mut best_square = (0, 0);
-        for y in 1..(GRID_SIZE - 1) {
-            for x in 1..(GRID_SIZE - 1) {
-                let mut total_power = 0;
-                for y in y..=(y + 2) {
-                    for x in x..=(x + 2) {
-                        total_power += power_levels.get(&(x, y)).unwrap();
-                    }
-                }
-                if total_power > largest_total_power {
-                    largest_total_power = total_power;
-                    best_square = (x, y);
-                }
-            }
+        Grid {
+            power_levels: power_levels,
         }
-        best_square
     }
+
+    fn part_1(&self) -> String {
+        let square = self.best_3x3_square();
+        format!("{},{}", square.x, square.y)
+    }
+
+    fn part_2(&self) -> String {
+        let square = self.best_square_of_any_size();
+        format!("{},{},{}", square.x, square.y, square.size)
+    }
+
+    fn best_3x3_square(&self) -> Square {
+        self.best_square(3)
+    }
+
+    fn best_square_of_any_size(&self) -> Square {
+        unimplemented!()
+    }
+
+    fn best_square(&self, size: i64) -> Square {
+        unimplemented!()
+    }
+}
+
+fn power_level(x: i64, y: i64, serial_number: i64) -> i64 {
+    let rack_id = x + 10;
+    let mut power_level = rack_id * y;
+    power_level += serial_number;
+    power_level *= rack_id;
+    power_level = (power_level / 100) % 10;
+    power_level - 5
 }
 
 #[test]
