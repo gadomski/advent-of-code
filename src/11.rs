@@ -1,6 +1,10 @@
 extern crate failure;
 
 use failure::Error;
+use std::collections::HashMap;
+use std::i64;
+
+const GRID_SIZE: i64 = 300;
 
 fn main() -> Result<(), Error> {
     let input = 5719;
@@ -32,7 +36,29 @@ impl Grid {
     }
 
     fn best_square(&self) -> (i64, i64) {
-        unimplemented!()
+        let mut power_levels = HashMap::new();
+        for y in 1..=GRID_SIZE {
+            for x in 1..=GRID_SIZE {
+                power_levels.insert((x, y), self.power_level(x, y));
+            }
+        }
+        let mut largest_total_power = i64::MIN;
+        let mut best_square = (0, 0);
+        for y in 1..(GRID_SIZE - 1) {
+            for x in 1..(GRID_SIZE - 1) {
+                let mut total_power = 0;
+                for y in y..=(y + 2) {
+                    for x in x..=(x + 2) {
+                        total_power += power_levels.get(&(x, y)).unwrap();
+                    }
+                }
+                if total_power > largest_total_power {
+                    largest_total_power = total_power;
+                    best_square = (x, y);
+                }
+            }
+        }
+        best_square
     }
 }
 
