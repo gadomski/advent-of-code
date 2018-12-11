@@ -1,14 +1,10 @@
-extern crate failure;
-
-use failure::Error;
 use std::collections::HashMap;
 use std::i64;
 
-const GRID_SIZE: i64 = 300;
-
 fn main() {
     let input = 5719;
-    let grid = Grid::new(input);
+    let size = 300;
+    let grid = Grid::new(size, input);
     println!("Part 1: {}", grid.part_1());
     println!("Part 2: {}", grid.part_2());
 }
@@ -16,26 +12,28 @@ fn main() {
 #[derive(Debug)]
 struct Grid {
     power_levels: HashMap<(i64, i64), i64>,
+    size: i64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 struct Square {
+    total_power: i64,
+    size: i64,
     x: i64,
     y: i64,
-    size: i64,
-    total_power: i64,
 }
 
 impl Grid {
-    fn new(serial_number: i64) -> Grid {
+    fn new(size: i64, serial_number: i64) -> Grid {
         let mut power_levels = HashMap::new();
-        for y in 1..=GRID_SIZE {
-            for x in 1..=GRID_SIZE {
+        for y in 1..=size {
+            for x in 1..=size {
                 power_levels.insert((x, y), power_level(x, y, serial_number));
             }
         }
         Grid {
             power_levels: power_levels,
+            size: size,
         }
     }
 
@@ -58,7 +56,46 @@ impl Grid {
     }
 
     fn best_square(&self, size: i64) -> Square {
-        unimplemented!()
+        let mut best_square = Square::worst();
+        for x in 1..=(self.size - size + 1) {
+            for y in 1..=(self.size - size + 1) {
+                let square = self.square(x, y, size).unwrap();
+                if square > best_square {
+                    best_square = square;
+                }
+            }
+        }
+        best_square
+    }
+
+    fn square(&self, x: i64, y: i64, size: i64) -> Option<Square> {
+        let mut total_power = 0;
+        for x in x..(x + size) {
+            for y in y..(y + size) {
+                if let Some(power) = self.power_levels.get(&(x, y)) {
+                    total_power += power;
+                } else {
+                    return None;
+                }
+            }
+        }
+        Some(Square {
+            x: x,
+            y: y,
+            size: size,
+            total_power: total_power,
+        })
+    }
+}
+
+impl Square {
+    fn worst() -> Square {
+        Square {
+            x: 0,
+            y: 0,
+            size: 0,
+            total_power: i64::MIN,
+        }
     }
 }
 
