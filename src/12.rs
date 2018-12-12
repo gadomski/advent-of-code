@@ -32,9 +32,12 @@ struct State {
 }
 
 #[derive(Debug)]
-struct Rules(Vec<Rule>);
+struct Rules {
+    rules: Vec<Rule>,
+    input_len: usize,
+}
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Rule {
     input: Vec<bool>,
     output: bool,
@@ -47,6 +50,9 @@ enum Error {
     NoInput(String),
     NoNewline(String),
     NoOutput(String),
+    NoRules,
+    EvenInputLength(Rule),
+    UnequalRuleInputLength(Vec<Rule>),
 }
 
 impl Game {
@@ -69,11 +75,11 @@ impl State {
         self.pots_with_plants.iter().map(|&n| n).max().unwrap_or(0)
     }
 
-    fn min_with_buffer(&self) -> i64 {
+    fn min_with_buffer(&self, rules: &Rules) -> i64 {
         self.min() - 2
     }
 
-    fn max_with_buffer(&self) -> i64 {
+    fn max_with_buffer(&self, rules: &Rules) -> i64 {
         self.max() + 2
     }
 
@@ -82,7 +88,32 @@ impl State {
     }
 }
 
+impl Rules {
+    fn new(rules: Vec<Rule>) -> Result<Rules, Error> {
+        let input_len = if let Some(first_rule) = rules.get(0) {
+            let input_len = first_rule.input_len();
+            if input_len % 2 == 0 {
+                return Err(Error::EvenInputLength(first_rule.clone()));
+            }
+            if rules.iter().any(|rule| rule.input_len() != input_len) {
+                return Err(Error::UnequalRuleInputLength(rules.clone()));
+            }
+            input_len
+        } else {
+            return Err(Error::NoRules);
+        };
+        Ok(Rules {
+            rules: rules,
+            input_len: input_len,
+        })
+    }
+}
+
 impl Rule {
+    fn input_len(&self) -> usize {
+        self.input.len()
+    }
+
     fn matches(&self, pots_with_plants: &HashSet<i64>, pot: i64) -> Option<bool> {
         assert_eq!(1, self.input.len() % 2);
         unimplemented!()
@@ -98,11 +129,10 @@ impl FromStr for Game {
             .ok_or(Error::MissingState(s.to_string()))
             .and_then(|line| line.parse())?;
         lines.next().ok_or(Error::NoNewline(s.to_string()))?;
-        let rules = Rules::from(
-            lines
-                .map(|line| line.parse::<Rule>())
-                .collect::<Result<Vec<Rule>, Error>>()?,
-        );
+        let rules = lines
+            .map(|line| line.parse::<Rule>())
+            .collect::<Result<Vec<Rule>, Error>>()
+            .and_then(Rules::new)?;
         Ok(Game {
             generation: 0,
             state: state,
@@ -143,12 +173,6 @@ impl FromStr for State {
         Ok(State {
             pots_with_plants: pots_with_plants,
         })
-    }
-}
-
-impl From<Vec<Rule>> for Rules {
-    fn from(rules: Vec<Rule>) -> Rules {
-        Rules(rules)
     }
 }
 
