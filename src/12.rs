@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fmt;
+use std::slice::Iter;
 use std::str::FromStr;
 
 fn main() -> Result<(), Error> {
@@ -14,7 +15,6 @@ fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error
     for _ in 0..generations {
         game.advance();
         println!("{}", game);
-        break;
     }
     Ok(game.sum_of_pots_with_plants())
 }
@@ -34,7 +34,7 @@ struct State {
 #[derive(Debug)]
 struct Rules {
     rules: Vec<Rule>,
-    input_len: usize,
+    input_len: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -76,15 +76,27 @@ impl State {
     }
 
     fn min_with_buffer(&self, rules: &Rules) -> i64 {
-        self.min() - 2
+        self.min() - rules.input_len() / 2
     }
 
     fn max_with_buffer(&self, rules: &Rules) -> i64 {
-        self.max() + 2
+        self.max() + rules.input_len() / 2
     }
 
     fn advance(&self, rules: &Rules) -> State {
-        unimplemented!()
+        let mut pots_with_plants = HashSet::new();
+        for pot in self.min_with_buffer(rules)..=self.max_with_buffer(rules) {
+            for rule in rules.iter() {
+                if let Some(output) = rule.match_(pot, &self.pots_with_plants) {
+                    if output {
+                        pots_with_plants.insert(pot);
+                    }
+                }
+            }
+        }
+        State {
+            pots_with_plants: pots_with_plants,
+        }
     }
 }
 
@@ -104,8 +116,16 @@ impl Rules {
         };
         Ok(Rules {
             rules: rules,
-            input_len: input_len,
+            input_len: input_len as i64,
         })
+    }
+
+    fn iter(&self) -> Iter<Rule> {
+        self.rules.iter()
+    }
+
+    fn input_len(&self) -> i64 {
+        self.input_len
     }
 }
 
@@ -114,9 +134,18 @@ impl Rule {
         self.input.len()
     }
 
-    fn matches(&self, pots_with_plants: &HashSet<i64>, pot: i64) -> Option<bool> {
-        assert_eq!(1, self.input.len() % 2);
-        unimplemented!()
+    fn match_(&self, pot: i64, pots_with_plants: &HashSet<i64>) -> Option<bool> {
+        if self
+            .input
+            .iter()
+            .enumerate()
+            .map(|(i, expected)| (i as i64 - self.input.len() as i64 / 2, expected))
+            .all(|(delta, &expected)| pots_with_plants.contains(&(pot + delta)) == expected)
+        {
+            Some(self.output)
+        } else {
+            None
+        }
     }
 }
 
@@ -226,4 +255,5 @@ fn part_1() {
 ###.# => #
 ####. => #";
     assert_eq!(325, sum_of_pots_with_plants(input, 20).unwrap());
+    assert!(false);
 }
