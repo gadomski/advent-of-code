@@ -14,6 +14,7 @@ fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error
     for _ in 0..generations {
         game.advance();
         println!("{}", game);
+        break;
     }
     Ok(game.sum_of_pots_with_plants())
 }
@@ -22,13 +23,16 @@ fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error
 struct Game {
     generation: u64,
     state: State,
-    rules: Vec<Rule>,
+    rules: Rules,
 }
 
 #[derive(Debug)]
 struct State {
     pots_with_plants: HashSet<i64>,
 }
+
+#[derive(Debug)]
+struct Rules(Vec<Rule>);
 
 #[derive(Debug)]
 struct Rule {
@@ -58,11 +62,11 @@ impl Game {
 
 impl State {
     fn min(&self) -> i64 {
-        self.pots_with_plants.iter().cloned().min().unwrap_or(0)
+        self.pots_with_plants.iter().map(|&n| n).min().unwrap_or(0)
     }
 
     fn max(&self) -> i64 {
-        self.pots_with_plants.iter().cloned().max().unwrap_or(0)
+        self.pots_with_plants.iter().map(|&n| n).max().unwrap_or(0)
     }
 
     fn min_with_buffer(&self) -> i64 {
@@ -73,32 +77,15 @@ impl State {
         self.max() + 2
     }
 
-    fn advance(&self, rules: &[Rule]) -> State {
-        let mut pots_with_plants = HashSet::new();
-        for pot in self.min_with_buffer()..=self.max_with_buffer() {
-            for rule in rules {
-                if let Some(output) = rule.matches(&self.pots_with_plants, pot) {
-                    if output {
-                        pots_with_plants.insert(pot);
-                    }
-                    break;
-                }
-            }
-        }
-        State {
-            pots_with_plants: pots_with_plants,
-        }
+    fn advance(&self, rules: &Rules) -> State {
+        unimplemented!()
     }
 }
 
 impl Rule {
     fn matches(&self, pots_with_plants: &HashSet<i64>, pot: i64) -> Option<bool> {
         assert_eq!(1, self.input.len() % 2);
-        let n = (self.input.len() / 2) as i64;
-        for n in -n..n {
-            println!("{}", n);
-        }
-        Some(true)
+        unimplemented!()
     }
 }
 
@@ -111,9 +98,11 @@ impl FromStr for Game {
             .ok_or(Error::MissingState(s.to_string()))
             .and_then(|line| line.parse())?;
         lines.next().ok_or(Error::NoNewline(s.to_string()))?;
-        let rules = lines
-            .map(|line| line.parse::<Rule>())
-            .collect::<Result<Vec<Rule>, Error>>()?;
+        let rules = Rules::from(
+            lines
+                .map(|line| line.parse::<Rule>())
+                .collect::<Result<Vec<Rule>, Error>>()?,
+        );
         Ok(Game {
             generation: 0,
             state: state,
@@ -154,6 +143,25 @@ impl FromStr for State {
         Ok(State {
             pots_with_plants: pots_with_plants,
         })
+    }
+}
+
+impl From<Vec<Rule>> for Rules {
+    fn from(rules: Vec<Rule>) -> Rules {
+        Rules(rules)
+    }
+}
+
+impl fmt::Display for Rule {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for &b in &self.input {
+            if b {
+                write!(f, "#")?;
+            } else {
+                write!(f, ".")?;
+            }
+        }
+        write!(f, " => {}", if self.output { "#" } else { "." })
     }
 }
 
