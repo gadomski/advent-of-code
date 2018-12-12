@@ -9,7 +9,7 @@ fn main() -> Result<(), Error> {
 }
 
 fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error> {
-    let game: Game = input.parse()?;
+    let mut game: Game = input.parse()?;
     println!("{}", game);
     for _ in 0..generations {
         game.advance();
@@ -46,12 +46,59 @@ enum Error {
 }
 
 impl Game {
-    fn advance(&self) {
-        unimplemented!()
+    fn advance(&mut self) {
+        self.state = self.state.advance(&self.rules);
+        self.generation += 1;
     }
 
     fn sum_of_pots_with_plants(&self) -> i64 {
         self.state.pots_with_plants.iter().sum()
+    }
+}
+
+impl State {
+    fn min(&self) -> i64 {
+        self.pots_with_plants.iter().cloned().min().unwrap_or(0)
+    }
+
+    fn max(&self) -> i64 {
+        self.pots_with_plants.iter().cloned().max().unwrap_or(0)
+    }
+
+    fn min_with_buffer(&self) -> i64 {
+        self.min() - 2
+    }
+
+    fn max_with_buffer(&self) -> i64 {
+        self.max() + 2
+    }
+
+    fn advance(&self, rules: &[Rule]) -> State {
+        let mut pots_with_plants = HashSet::new();
+        for pot in self.min_with_buffer()..=self.max_with_buffer() {
+            for rule in rules {
+                if let Some(output) = rule.matches(&self.pots_with_plants, pot) {
+                    if output {
+                        pots_with_plants.insert(pot);
+                    }
+                    break;
+                }
+            }
+        }
+        State {
+            pots_with_plants: pots_with_plants,
+        }
+    }
+}
+
+impl Rule {
+    fn matches(&self, pots_with_plants: &HashSet<i64>, pot: i64) -> Option<bool> {
+        assert_eq!(1, self.input.len() % 2);
+        let n = (self.input.len() / 2) as i64;
+        for n in -n..n {
+            println!("{}", n);
+        }
+        Some(true)
     }
 }
 
@@ -77,20 +124,8 @@ impl FromStr for Game {
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let min = self
-            .state
-            .pots_with_plants
-            .iter()
-            .cloned()
-            .min()
-            .unwrap_or(0);
-        let max = self
-            .state
-            .pots_with_plants
-            .iter()
-            .cloned()
-            .max()
-            .unwrap_or(0);
+        let min = self.state.min();
+        let max = self.state.max();
         write!(f, "{} ({}..={}): ", self.generation, min, max)?;
         for n in min..=max {
             if self.state.pots_with_plants.contains(&n) {
