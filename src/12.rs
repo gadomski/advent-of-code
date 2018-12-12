@@ -255,5 +255,4 @@ fn part_1() {
 ###.# => #
 ####. => #";
     assert_eq!(325, sum_of_pots_with_plants(input, 20).unwrap());
-    assert!(false);
 }
