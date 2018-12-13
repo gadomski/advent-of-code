@@ -14,6 +14,9 @@ fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error
     let mut game: Game = input.parse()?;
     for _ in 0..generations {
         game.advance();
+        if game.is_stable() {
+            break;
+        }
     }
     Ok(game.sum_of_pots_with_plants())
 }
@@ -28,7 +31,7 @@ struct Game {
 #[derive(Debug)]
 struct State {
     pots_with_plants: HashSet<i64>,
-    stable: bool,
+    is_stable: bool,
 }
 
 #[derive(Debug)]
@@ -61,6 +64,10 @@ impl Game {
         self.generation += 1;
     }
 
+    fn is_stable(&self) -> bool {
+        self.state.is_stable
+    }
+
     fn sum_of_pots_with_plants(&self) -> i64 {
         self.state.pots_with_plants.iter().sum()
     }
@@ -70,7 +77,7 @@ impl State {
     fn new(pots_with_plants: HashSet<i64>) -> State {
         State {
             pots_with_plants: pots_with_plants,
-            stable: false,
+            is_stable: false,
         }
     }
 
@@ -91,7 +98,7 @@ impl State {
     }
 
     fn advance(&mut self, rules: &Rules) {
-        if self.stable {
+        if self.is_stable {
             return;
         }
         let mut pots_with_plants = HashSet::new();
@@ -105,7 +112,7 @@ impl State {
             }
         }
         if pots_with_plants == self.pots_with_plants {
-            self.stable = true;
+            self.is_stable = true;
         } else {
             self.pots_with_plants = pots_with_plants;
         }
