@@ -6,7 +6,7 @@ use std::str::FromStr;
 fn main() -> Result<(), Error> {
     let input = include_str!("../input/12.txt");
     println!("Part 1: {}", sum_of_pots_with_plants(input, 20)?);
-    println!("Part 2: {}", sum_of_pots_with_plants(input, 50000000000)?);
+    println!("Part 2: {}", sum_of_pots_with_plants(input, 999)?);
     Ok(())
 }
 
@@ -14,9 +14,7 @@ fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error
     let mut game: Game = input.parse()?;
     for _ in 0..generations {
         game.advance();
-        if game.is_stable() {
-            break;
-        }
+        println!("{}", game);
     }
     Ok(game.sum_of_pots_with_plants())
 }
@@ -31,7 +29,6 @@ struct Game {
 #[derive(Debug)]
 struct State {
     pots_with_plants: HashSet<i64>,
-    is_stable: bool,
 }
 
 #[derive(Debug)]
@@ -64,10 +61,6 @@ impl Game {
         self.generation += 1;
     }
 
-    fn is_stable(&self) -> bool {
-        self.state.is_stable
-    }
-
     fn sum_of_pots_with_plants(&self) -> i64 {
         self.state.pots_with_plants.iter().sum()
     }
@@ -77,7 +70,6 @@ impl State {
     fn new(pots_with_plants: HashSet<i64>) -> State {
         State {
             pots_with_plants: pots_with_plants,
-            is_stable: false,
         }
     }
 
@@ -98,9 +90,6 @@ impl State {
     }
 
     fn advance(&mut self, rules: &Rules) {
-        if self.is_stable {
-            return;
-        }
         let mut pots_with_plants = HashSet::new();
         for pot in self.min_with_buffer(rules)..=self.max_with_buffer(rules) {
             for rule in rules.iter() {
@@ -111,11 +100,7 @@ impl State {
                 }
             }
         }
-        if pots_with_plants == self.pots_with_plants {
-            self.is_stable = true;
-        } else {
-            self.pots_with_plants = pots_with_plants;
-        }
+        self.pots_with_plants = pots_with_plants;
     }
 }
 
@@ -193,7 +178,14 @@ impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let min = self.state.min();
         let max = self.state.max();
-        write!(f, "{} ({}..={}): ", self.generation, min, max)?;
+        write!(
+            f,
+            "{} ({}..={}) [{}]: ",
+            self.generation,
+            min,
+            max,
+            self.sum_of_pots_with_plants(),
+        )?;
         for n in min..=max {
             if self.state.pots_with_plants.contains(&n) {
                 write!(f, "#")?;
