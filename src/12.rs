@@ -6,15 +6,14 @@ use std::str::FromStr;
 fn main() -> Result<(), Error> {
     let input = include_str!("../input/12.txt");
     println!("Part 1: {}", sum_of_pots_with_plants(input, 20)?);
+    println!("Part 2: {}", sum_of_pots_with_plants(input, 50000000000)?);
     Ok(())
 }
 
 fn sum_of_pots_with_plants(input: &str, generations: usize) -> Result<i64, Error> {
     let mut game: Game = input.parse()?;
-    println!("{}", game);
     for _ in 0..generations {
         game.advance();
-        println!("{}", game);
     }
     Ok(game.sum_of_pots_with_plants())
 }
@@ -29,6 +28,7 @@ struct Game {
 #[derive(Debug)]
 struct State {
     pots_with_plants: HashSet<i64>,
+    stable: bool,
 }
 
 #[derive(Debug)]
@@ -57,7 +57,7 @@ enum Error {
 
 impl Game {
     fn advance(&mut self) {
-        self.state = self.state.advance(&self.rules);
+        self.state.advance(&self.rules);
         self.generation += 1;
     }
 
@@ -67,6 +67,13 @@ impl Game {
 }
 
 impl State {
+    fn new(pots_with_plants: HashSet<i64>) -> State {
+        State {
+            pots_with_plants: pots_with_plants,
+            stable: false,
+        }
+    }
+
     fn min(&self) -> i64 {
         self.pots_with_plants.iter().map(|&n| n).min().unwrap_or(0)
     }
@@ -83,7 +90,10 @@ impl State {
         self.max() + rules.input_len() / 2
     }
 
-    fn advance(&self, rules: &Rules) -> State {
+    fn advance(&mut self, rules: &Rules) {
+        if self.stable {
+            return;
+        }
         let mut pots_with_plants = HashSet::new();
         for pot in self.min_with_buffer(rules)..=self.max_with_buffer(rules) {
             for rule in rules.iter() {
@@ -94,8 +104,10 @@ impl State {
                 }
             }
         }
-        State {
-            pots_with_plants: pots_with_plants,
+        if pots_with_plants == self.pots_with_plants {
+            self.stable = true;
+        } else {
+            self.pots_with_plants = pots_with_plants;
         }
     }
 }
@@ -199,9 +211,7 @@ impl FromStr for State {
                 pots_with_plants.insert(i as i64);
             }
         }
-        Ok(State {
-            pots_with_plants: pots_with_plants,
-        })
+        Ok(State::new(pots_with_plants))
     }
 }
 
