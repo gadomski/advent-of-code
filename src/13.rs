@@ -8,7 +8,10 @@ fn main() -> Result<(), Error> {
 }
 
 fn first_crash(input: &str) -> Result<String, Error> {
-    let map: Map = input.parse()?;
+    let mut map: Map = input.parse()?;
+    while !map.has_crash() {
+        map.tick()?;
+    }
     unimplemented!()
 }
 
@@ -18,10 +21,10 @@ struct Map {
     carts: Vec<Cart>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct Location {
-    x: usize,
     y: usize,
+    x: usize,
 }
 
 #[derive(Debug)]
@@ -33,21 +36,22 @@ enum Piece {
     Intersection,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Cart {
     location: Location,
     next_turn_direction: Turn,
     direction: Direction,
+    has_crashed: bool,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Turn {
     Left,
     Straight,
     Right,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Direction {
     Up,
     Right,
@@ -57,7 +61,26 @@ enum Direction {
 
 #[derive(Debug)]
 enum Error {
+    CantAdvanceACrashedCart(Cart),
     UnknownPiece(char, Location),
+}
+
+impl Map {
+    fn has_crash(&self) -> bool {
+        self.carts.iter().any(|cart| cart.has_crashed())
+    }
+
+    fn tick(&mut self) -> Result<(), Error> {
+        self.carts.sort();
+        for cart in &mut self.carts {
+            if cart.has_crashed {
+                return Err(Error::CantAdvanceACrashedCart(cart.clone()));
+            } else {
+                unimplemented!()
+            }
+        }
+        Ok(())
+    }
 }
 
 impl FromStr for Map {
@@ -111,7 +134,12 @@ impl Cart {
             location: location,
             direction: direction,
             next_turn_direction: Turn::Left,
+            has_crashed: false,
         }
+    }
+
+    fn has_crashed(&self) -> bool {
+        self.has_crashed
     }
 }
 
