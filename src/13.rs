@@ -18,7 +18,7 @@ struct Map {
     carts: Vec<Cart>,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct Location {
     x: usize,
     y: usize,
@@ -37,6 +37,7 @@ enum Piece {
 struct Cart {
     location: Location,
     next_turn_direction: Turn,
+    direction: Direction,
 }
 
 #[derive(Debug)]
@@ -47,7 +48,17 @@ enum Turn {
 }
 
 #[derive(Debug)]
-enum Error {}
+enum Direction {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
+#[derive(Debug)]
+enum Error {
+    UnknownPiece(char, Location),
+}
 
 impl FromStr for Map {
     type Err = Error;
@@ -56,8 +67,34 @@ impl FromStr for Map {
         let mut carts = Vec::new();
         for (row, line) in s.lines().enumerate() {
             for (col, c) in line.chars().enumerate() {
-                match c {
-                    _ => unimplemented!(),
+                let location = Location { x: col, y: row };
+                let piece = match c {
+                    '|' => Some(Piece::Vertical),
+                    '-' => Some(Piece::Horizontal),
+                    '\\' => Some(Piece::LeftCurve),
+                    '/' => Some(Piece::RightCurve),
+                    '+' => Some(Piece::Intersection),
+                    ' ' => None,
+                    '>' => {
+                        carts.push(Cart::new(location, Direction::Right));
+                        Some(Piece::Horizontal)
+                    }
+                    'v' => {
+                        carts.push(Cart::new(location, Direction::Down));
+                        Some(Piece::Vertical)
+                    }
+                    '<' => {
+                        carts.push(Cart::new(location, Direction::Left));
+                        Some(Piece::Horizontal)
+                    }
+                    '^' => {
+                        carts.push(Cart::new(location, Direction::Up));
+                        Some(Piece::Vertical)
+                    }
+                    _ => return Err(Error::UnknownPiece(c, location)),
+                };
+                if let Some(piece) = piece {
+                    track.insert(location, piece);
                 }
             }
         }
@@ -68,12 +105,22 @@ impl FromStr for Map {
     }
 }
 
+impl Cart {
+    fn new(location: Location, direction: Direction) -> Cart {
+        Cart {
+            location: location,
+            direction: direction,
+            next_turn_direction: Turn::Left,
+        }
+    }
+}
+
 #[test]
 fn part_1() {
-    let input = r"/---\        
+    let input = r"/->-\        
 |   |  /----\
 | /-+--+-\  |
-| | |  X |  |
+| | |  | v  |
 \-+-/  \-+--/
   \------/   ";
     assert_eq!("7,3", first_crash(input).unwrap());
