@@ -9,12 +9,17 @@ fn main() -> Result<(), Error> {
 }
 
 fn first_crash(input: &str) -> Result<String, Error> {
-    let tracks: Tracks = input.parse()?;
-    unimplemented!()
+    let mut tracks: Tracks = input.parse()?;
+    while !tracks.has_crash() {
+        tracks.tick();
+    }
+    let crash = tracks.first_crash().unwrap();
+    Ok(format!("{},{}", crash.x, crash.y))
 }
 
 #[derive(Debug)]
 struct Tracks {
+    crashes: Vec<Location>,
     tracks: HashMap<Location, Track>,
 }
 
@@ -63,7 +68,15 @@ impl Tracks {
         self.tracks
             .iter()
             .filter_map(|(location, track)| track.cart.as_ref().map(|_| location))
-            .all(|location| cart_locations.insert(location))
+            .any(|location| !cart_locations.insert(location))
+    }
+
+    fn tick(&mut self) {
+        unimplemented!()
+    }
+
+    fn first_crash(&self) -> Option<&Location> {
+        self.crashes.get(0)
     }
 }
 
@@ -78,7 +91,10 @@ impl FromStr for Tracks {
                 }
             }
         }
-        Ok(Tracks { tracks: tracks })
+        Ok(Tracks {
+            crashes: Vec::new(),
+            tracks: tracks,
+        })
     }
 }
 
