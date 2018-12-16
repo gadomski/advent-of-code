@@ -15,7 +15,9 @@ fn first_crash(input: &str) -> Result<String, Error> {
 }
 
 #[derive(Debug)]
-struct Tracks {}
+struct Tracks {
+    tracks: HashMap<Location, Track>,
+}
 
 #[derive(Debug)]
 struct Track {
@@ -49,19 +51,29 @@ impl FromStr for Tracks {
     fn from_str(s: &str) -> Result<Tracks, Error> {
         let mut tracks = HashMap::new();
         for (row, line) in s.lines().enumerate() {
-            for (col, c) in s.chars().enumerate() {
+            for (col, c) in line.chars().enumerate() {
                 if let Some(track) = Track::from_char(c) {
                     tracks.insert(Location::new(col, row), track);
                 }
             }
         }
-        Ok(Tracks {})
+        Ok(Tracks { tracks: tracks })
     }
 }
 
 impl fmt::Display for Tracks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "tracks!")
+        for y in 0..=self.tracks.keys().map(|location| location.y).max().unwrap() {
+            for x in 0..=self.tracks.keys().map(|location| location.x).max().unwrap() {
+                if let Some(track) = self.tracks.get(&Location::new(x, y)) {
+                    write!(f, "{}", track)?;
+                } else {
+                    write!(f, " ")?;
+                }
+            }
+            writeln!(f, "")?;
+        }
+        Ok(())
     }
 }
 
@@ -76,7 +88,7 @@ impl Track {
             '\\' => Backslash,
             '+' => Intersection,
             ' ' => return None,
-            _ => unimplemented!(),
+            _ => return None,
         };
         Some(Track {
             track_type: track_type,
@@ -85,9 +97,26 @@ impl Track {
     }
 }
 
+impl fmt::Display for Track {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use TrackType::{Backslash, Horizontal, Intersection, Slash, Vertical};
+        write!(
+            f,
+            "{}",
+            match self.track_type {
+                Vertical => '|',
+                Horizontal => '-',
+                Slash => '/',
+                Backslash => '\\',
+                Intersection => '+',
+            }
+        )
+    }
+}
+
 impl Location {
     fn new(x: usize, y: usize) -> Location {
-        unimplemented!()
+        Location { x: x, y: y }
     }
 }
 
