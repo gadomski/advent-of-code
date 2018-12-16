@@ -88,6 +88,14 @@ impl Track {
             '\\' => Backslash,
             '+' => Intersection,
             ' ' => return None,
+            '>' | '<' => {
+                cart = Some(Cart::new(c));
+                Horizontal
+            }
+            '^' | 'v' => {
+                cart = Some(Cart::new(c));
+                Vertical
+            }
             _ => return None,
         };
         Some(Track {
@@ -111,6 +119,12 @@ impl fmt::Display for Track {
                 Intersection => '+',
             }
         )
+    }
+}
+
+impl Cart {
+    fn new(c: char) -> Cart {
+        Cart {}
     }
 }
 
