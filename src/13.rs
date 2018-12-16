@@ -12,6 +12,7 @@ fn first_crash(input: &str) -> Result<String, Error> {
     let mut tracks: Tracks = input.parse()?;
     while !tracks.has_crash() {
         tracks.tick();
+        break;
     }
     let crash = tracks.first_crash().unwrap();
     Ok(format!("{},{}", crash.x, crash.y))
@@ -72,7 +73,9 @@ impl Tracks {
     }
 
     fn tick(&mut self) {
-        unimplemented!()
+        for y in 0..=self.tracks.keys().map(|location| location.y).max().unwrap() {
+            for x in 0..=self.tracks.keys().map(|location| location.x).max().unwrap() {}
+        }
     }
 
     fn first_crash(&self) -> Option<&Location> {
