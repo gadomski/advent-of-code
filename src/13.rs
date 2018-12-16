@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
 
@@ -10,7 +10,6 @@ fn main() -> Result<(), Error> {
 
 fn first_crash(input: &str) -> Result<String, Error> {
     let tracks: Tracks = input.parse()?;
-    println!("{}", tracks);
     unimplemented!()
 }
 
@@ -56,6 +55,16 @@ enum Orientation {
 #[derive(Debug)]
 enum Error {
     InvalidTrack(char),
+}
+
+impl Tracks {
+    fn has_crash(&self) -> bool {
+        let mut cart_locations = HashSet::new();
+        self.tracks
+            .iter()
+            .filter_map(|(location, track)| track.cart.as_ref().map(|_| location))
+            .all(|location| cart_locations.insert(location))
+    }
 }
 
 impl FromStr for Tracks {
