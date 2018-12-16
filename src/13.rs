@@ -18,13 +18,28 @@ fn first_crash(input: &str) -> Result<String, Error> {
 struct Tracks {}
 
 #[derive(Debug)]
-struct Track {}
+struct Track {
+    track_type: TrackType,
+    cart: Option<Cart>,
+}
+
+#[derive(Debug)]
+enum TrackType {
+    Vertical,
+    Horizontal,
+    Slash,
+    Backslash,
+    Intersection,
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Location {
     x: usize,
     y: usize,
 }
+
+#[derive(Debug)]
+struct Cart {}
 
 #[derive(Debug)]
 enum Error {}
@@ -35,7 +50,7 @@ impl FromStr for Tracks {
         let mut tracks = HashMap::new();
         for (row, line) in s.lines().enumerate() {
             for (col, c) in s.chars().enumerate() {
-                if let Some(track) = Track::new(c) {
+                if let Some(track) = Track::from_char(c) {
                     tracks.insert(Location::new(col, row), track);
                 }
             }
@@ -51,8 +66,22 @@ impl fmt::Display for Tracks {
 }
 
 impl Track {
-    fn new(c: char) -> Option<Track> {
-        unimplemented!()
+    fn from_char(c: char) -> Option<Track> {
+        use TrackType::{Backslash, Horizontal, Intersection, Slash, Vertical};
+        let mut cart: Option<Cart> = None;
+        let track_type = match c {
+            '|' => Vertical,
+            '-' => Horizontal,
+            '/' => Slash,
+            '\\' => Backslash,
+            '+' => Intersection,
+            ' ' => return None,
+            _ => unimplemented!(),
+        };
+        Some(Track {
+            track_type: track_type,
+            cart: cart,
+        })
     }
 }
 
