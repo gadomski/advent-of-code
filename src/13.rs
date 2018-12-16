@@ -41,10 +41,22 @@ struct Location {
 }
 
 #[derive(Debug)]
-struct Cart {}
+struct Cart {
+    orientation: Orientation,
+}
 
 #[derive(Debug)]
-enum Error {}
+enum Orientation {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
+#[derive(Debug)]
+enum Error {
+    InvalidTrack(char),
+}
 
 impl FromStr for Tracks {
     type Err = Error;
@@ -52,7 +64,7 @@ impl FromStr for Tracks {
         let mut tracks = HashMap::new();
         for (row, line) in s.lines().enumerate() {
             for (col, c) in line.chars().enumerate() {
-                if let Some(track) = Track::from_char(c) {
+                if let Some(track) = Track::from_char(c)? {
                     tracks.insert(Location::new(col, row), track);
                 }
             }
@@ -78,7 +90,7 @@ impl fmt::Display for Tracks {
 }
 
 impl Track {
-    fn from_char(c: char) -> Option<Track> {
+    fn from_char(c: char) -> Result<Option<Track>, Error> {
         use TrackType::{Backslash, Horizontal, Intersection, Slash, Vertical};
         let mut cart: Option<Cart> = None;
         let track_type = match c {
@@ -87,44 +99,68 @@ impl Track {
             '/' => Slash,
             '\\' => Backslash,
             '+' => Intersection,
-            ' ' => return None,
+            ' ' => return Ok(None),
             '>' | '<' => {
-                cart = Some(Cart::new(c));
+                cart = Some(Cart::new(c)?);
                 Horizontal
             }
             '^' | 'v' => {
-                cart = Some(Cart::new(c));
+                cart = Some(Cart::new(c)?);
                 Vertical
             }
-            _ => return None,
+            _ => return Err(Error::InvalidTrack(c)),
         };
-        Some(Track {
+        Ok(Some(Track {
             track_type: track_type,
             cart: cart,
-        })
+        }))
     }
 }
 
 impl fmt::Display for Track {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Orientation::{Down, Left, Right, Up};
         use TrackType::{Backslash, Horizontal, Intersection, Slash, Vertical};
-        write!(
-            f,
-            "{}",
-            match self.track_type {
-                Vertical => '|',
-                Horizontal => '-',
-                Slash => '/',
-                Backslash => '\\',
-                Intersection => '+',
-            }
-        )
+        if let Some(cart) = self.cart.as_ref() {
+            write!(
+                f,
+                "{}",
+                match cart.orientation {
+                    Up => '^',
+                    Right => '>',
+                    Down => 'v',
+                    Left => '<',
+                }
+            )
+        } else {
+            write!(
+                f,
+                "{}",
+                match self.track_type {
+                    Vertical => '|',
+                    Horizontal => '-',
+                    Slash => '/',
+                    Backslash => '\\',
+                    Intersection => '+',
+                }
+            )
+        }
     }
 }
 
 impl Cart {
-    fn new(c: char) -> Cart {
-        Cart {}
+    fn new(c: char) -> Result<Cart, Error> {
+        use Orientation::{Down, Left, Right, Up};
+        let orientation = match c {
+            '>' => Right,
+            'v' => Down,
+            '<' => Left,
+            '^' => Up,
+            _ => return Err(Error::InvalidTrack(c)),
+        };
+        Ok(Cart {
+            orientation: orientation,
+        })
     }
 }
 
