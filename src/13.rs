@@ -11,16 +11,18 @@ fn main() -> Result<(), Error> {
 fn first_crash(input: &str) -> Result<String, Error> {
     let mut tracks: Tracks = input.parse()?;
     while !tracks.has_crash() {
-        tracks.tick();
-        break;
+        if let Err(err) = tracks.tick() {
+            match err {
+                Error::Crash(location) => return Ok(format!("{},{}", location.x, location.y)),
+                _ => return Err(err),
+            }
+        }
     }
-    let crash = tracks.first_crash().unwrap();
-    Ok(format!("{},{}", crash.x, crash.y))
+    unreachable!()
 }
 
 #[derive(Debug)]
 struct Tracks {
-    crashes: Vec<Location>,
     tracks: HashMap<Location, Track>,
 }
 
@@ -39,7 +41,7 @@ enum TrackType {
     Intersection,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct Location {
     x: usize,
     y: usize,
@@ -60,6 +62,7 @@ enum Orientation {
 
 #[derive(Debug)]
 enum Error {
+    Crash(Location),
     InvalidTrack(char),
 }
 
@@ -72,14 +75,24 @@ impl Tracks {
             .any(|location| !cart_locations.insert(location))
     }
 
-    fn tick(&mut self) {
-        for y in 0..=self.tracks.keys().map(|location| location.y).max().unwrap() {
-            for x in 0..=self.tracks.keys().map(|location| location.x).max().unwrap() {}
+    fn tick(&mut self) -> Result<(), Error> {
+        for location in self.locations_with_carts() {
+            panic!("need to advance {:?}", location);
         }
+        Ok(())
     }
 
-    fn first_crash(&self) -> Option<&Location> {
-        self.crashes.get(0)
+    fn locations_with_carts(&mut self) -> Vec<Location> {
+        self.tracks
+            .iter()
+            .filter_map(|(&location, track)| {
+                if track.cart.is_some() {
+                    Some(location)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -94,10 +107,7 @@ impl FromStr for Tracks {
                 }
             }
         }
-        Ok(Tracks {
-            crashes: Vec::new(),
-            tracks: tracks,
-        })
+        Ok(Tracks { tracks: tracks })
     }
 }
 
